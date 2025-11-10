@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hospital Staff Feedback Form</title>
+  <style>
+    :root{
+      --bg: #f8f9fa;
+      --card: #fff;
+      --primary: #0b5ed7;
+      --primary-600: #084298;
+      --muted: #4b5563; /* improved contrast */
+      --radius: 10px;
+      --shadow: 0 6px 20px rgba(15,15,15,0.06);
+      --gap: 12px;
+      --error: #b00020;
+      --success: #0a7b3f;
+      --focus: 3px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      background:var(--bg);
+      color:#111;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:20px;
+      display:flex;
+      justify-content:center;
+    }
+    .page {
+      max-width:820px;
+      width:100%;
+      padding:20px;
+    }
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:20px;
+      margin-bottom:16px;
+    }
+    header h1{
+      margin:0;
+      font-size:20px;
+      text-align:center;
+    }
+    header p.lead{
+      margin:8px 0 0;
+      color:var(--muted);
+      text-align:center;
+      font-size:14px;
+    }
+
+    form { margin-top:16px; }
+    .q-label { display:block; font-weight:700; margin-top:12px; color: #111; }
+    select, textarea, input[type="text"], .radio-item input{
+      font-size:14px;
+      font-family:inherit;
+    }
+    select, textarea, input[type="text"]{
+      width:100%;
+      padding:10px;
+      border-radius:8px;
+      border:1px solid #e6e9ee;
+      margin-top:8px;
+    }
+    textarea { min-height:88px; resize:vertical; }
+    details { background:#fff; border-radius:8px; padding:10px 12px; margin-top:12px; border:1px solid #eef2f6; }
+    summary { cursor:pointer; font-weight:700; list-style:none; }
+    details[open] { box-shadow: 0 8px 24px rgba(12,12,12,0.06); }
+    .section-body { margin-top:10px; padding-bottom:6px; }
+    .radio-group{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; padding:8px; border-radius:8px; transition: box-shadow .12s, border-color .12s; border:1px solid transparent; background:#f6f8fb; }
+    .radio-item{
+      background:transparent; padding:6px 8px; border-radius:8px; display:flex; gap:8px; align-items:center;
+      border:1px solid transparent;
+    }
+    .radio-item input{ margin:0; }
+    .hint{ color:var(--muted); font-size:13px; margin-top:6px; display:block; }
+    .actions{ margin-top:18px; display:flex; gap:10px; align-items:center; }
+    button.submit-btn{
+      background:var(--primary);
+      color:#fff;
+      border:none;
+      padding:10px 14px;
+      border-radius:8px;
+      cursor:pointer;
+      font-size:15px;
+      width:100%;
+    }
+    button.submit-btn[disabled]{ opacity:.7; cursor:not-allowed; }
+    button.submit-btn:hover:not([disabled]){ background:var(--primary-600); }
+    .status{ margin-top:10px; font-size:14px; color:var(--muted); }
+    .status.success{ color:var(--success); }
+    .status.error{ color:var(--error); }
+
+    /* inline errors for radio groups */
+    .error-msg{ color:var(--error); font-size:13px; margin-top:6px; display:none; }
+    .radio-group.invalid{ border-color: rgba(176,0,32,0.12); box-shadow: 0 0 0 var(--focus) rgba(176,0,32,0.08); }
+    .radio-group.invalid .error-msg{ display:block; }
+
+    /* focus styles for accessibility */
+    :focus{ outline:none; }
+    input:focus, textarea:focus, select:focus, .radio-item input:focus-visible{
+      box-shadow: 0 0 0 var(--focus) rgba(11,94,215,0.16);
+      border-radius:6px;
+    }
+
+    /* small screens */
+    @media (max-width:640px){
+      .radio-group{ gap:6px; }
+      .radio-item{ padding:7px 8px; font-size:14px; }
+    }
+
+    /* honeypot - visually hidden but still available to bots */
+    .honeypot {
+      position: absolute !important;
+      left: -9999px !important;
+      width: 1px !important;
+      height: 1px !important;
+      overflow: hidden !important;
+    }
+
+    /* subtle success highlight on submitted inputs (non persistent) */
+    .submitted-highlight { background: linear-gradient(90deg, rgba(10,123,63,0.04), transparent); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card" aria-labelledby="formTitle">
+      <header>
+        <h1 id="formTitle">Hospital Staff Feedback Form</h1>
+        <p class="lead">Please complete this short staff survey — your answers are confidential.</p>
+      </header>
+
+      <form id="feedbackForm" novalidate>
+        <!-- honeypot to reduce spam -->
+        <label class="honeypot" for="website">Leave this field blank</label>
+        <input class="honeypot" type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+
+        <!-- Hospital selection -->
+        <label for="hospital" class="q-label">Select hospital <span class="hint" id="hospitalHint">Required</span></label>
+        <select id="hospital" name="hospitalValue" required aria-describedby="hospitalHint">
+          <option value="" disabled selected>-- Select Hospital --</option>
+          <option value="the-matuu-hospital">The Matuu Hospital</option>
+          <option value="reliable-healthcare-services-hospital">Reliable Healthcare Services Hospital</option>
+          <option value="ekalakala-nursing-home">Ekalakala Nursing Home</option>
+          <option value="ultrakathiani-hospital">Ultrakathiani Hospital</option>
+          <option value="ultrakathiani-hospital-mitaboni">Ultrakathiani Hospital - Mitaboni</option>
+          <option value="namanga-nursing-home">Namanga Nursing Home</option>
+          <option value="ginger-hospital">Ginger Hospital</option>
+          <option value="kwa-vonza-cottage-hospital">Kwa Vonza Cottage Hospital</option>
+        </select>
+
+        <!-- hidden human-readable hospital name (populated automatically) -->
+        <input type="hidden" id="hospitalName" name="hospitalName" value="">
+
+        <!-- SECTION A -->
+        <details>
+          <summary>SECTION A: GENERAL INFORMATION</summary>
+          <div class="section-body">
+            <label id="label-A_q1" class="q-label">1. How long have you worked with the company?</label>
+            <div class="radio-group" data-qname="A_q1" role="radiogroup" aria-labelledby="label-A_q1" data-required="true">
+              <label class="radio-item"><input type="radio" name="A_q1" value="Less than 6 months" required> <span>Less than 6 months</span></label>
+              <label class="radio-item"><input type="radio" name="A_q1" value="6 months – 1 year"> <span>6 months – 1 year</span></label>
+              <label class="radio-item"><input type="radio" name="A_q1" value="1–3 years"> <span>1–3 years</span></label>
+              <label class="radio-item"><input type="radio" name="A_q1" value="Over 3 years"> <span>Over 3 years</span></label>
+            </div>
+            <div class="error-msg" data-for="A_q1">Please select an option for question 1</div>
+
+            <label id="label-A_q2" class="q-label">2. What is your employment status?</label>
+            <div class="radio-group" data-qname="A_q2" role="radiogroup" aria-labelledby="label-A_q2" data-required="true">
+              <label class="radio-item"><input type="radio" name="A_q2" value="Permanent" required> <span>Permanent</span></label>
+              <label class="radio-item"><input type="radio" name="A_q2" value="Contract"> <span>Contract</span></label>
+              <label class="radio-item"><input type="radio" name="A_q2" value="Internship"> <span>Internship</span></label>
+              <label class="radio-item"><input type="radio" name="A_q2" value="Other"> <span>Other (specify below)</span></label>
+            </div>
+            <div class="error-msg" data-for="A_q2">Please select your employment status</div>
+
+            <label for="A_q2_other" class="q-label">If 'Other', specify (optional)</label>
+            <input type="text" id="A_q2_other" name="A_q2_other" placeholder="Describe your employment status (optional)">
+          </div>
+        </details>
+
+        <!-- SECTION B -->
+        <details>
+          <summary>SECTION B: WORK ENVIRONMENT</summary>
+          <div class="section-body">
+            <label id="label-B_q1" class="q-label">1. How would you rate your general work environment?</label>
+            <div class="radio-group" data-qname="B_q1" role="radiogroup" aria-labelledby="label-B_q1" data-required="true">
+              <label class="radio-item"><input type="radio" name="B_q1" value="Excellent" required> <span>Excellent</span></label>
+              <label class="radio-item"><input type="radio" name="B_q1" value="Good"> <span>Good</span></label>
+              <label class="radio-item"><input type="radio" name="B_q1" value="Fair"> <span>Fair</span></label>
+              <label class="radio-item"><input type="radio" name="B_q1" value="Poor"> <span>Poor</span></label>
+            </div>
+            <div class="error-msg" data-for="B_q1">Please rate your work environment</div>
+
+            <label id="label-B_q2" class="q-label">2. Do you have the tools and resources needed to perform your job effectively?</label>
+            <div class="radio-group" data-qname="B_q2" role="radiogroup" aria-labelledby="label-B_q2" data-required="true">
+              <label class="radio-item"><input type="radio" name="B_q2" value="Yes" required> <span>Yes</span></label>
+              <label class="radio-item"><input type="radio" name="B_q2" value="No"> <span>No</span></label>
+              <label class="radio-item"><input type="radio" name="B_q2" value="Partially"> <span>Partially</span></label>
+            </div>
+            <div class="error-msg" data-for="B_q2">Please answer question 2</div>
+
+            <label id="label-B_q3" class="q-label">3. How would you rate communication within your department?</label>
+            <div class="radio-group" data-qname="B_q3" role="radiogroup" aria-labelledby="label-B_q3" data-required="true">
+              <label class="radio-item"><input type="radio" name="B_q3" value="Excellent" required> <span>Excellent</span></label>
+              <label class="radio-item"><input type="radio" name="B_q3" value="Good"> <span>Good</span></label>
+              <label class="radio-item"><input type="radio" name="B_q3" value="Fair"> <span>Fair</span></label>
+              <label class="radio-item"><input type="radio" name="B_q3" value="Poor"> <span>Poor</span></label>
+            </div>
+            <div class="error-msg" data-for="B_q3">Please answer question 3</div>
+
+            <label id="label-B_q4" class="q-label">4. How would you rate communication between departments?</label>
+            <div class="radio-group" data-qname="B_q4" role="radiogroup" aria-labelledby="label-B_q4" data-required="true">
+              <label class="radio-item"><input type="radio" name="B_q4" value="Excellent" required> <span>Excellent</span></label>
+              <label class="radio-item"><input type="radio" name="B_q4" value="Good"> <span>Good</span></label>
+              <label class="radio-item"><input type="radio" name="B_q4" value="Fair"> <span>Fair</span></label>
+              <label class="radio-item"><input type="radio" name="B_q4" value="Poor"> <span>Poor</span></label>
+            </div>
+            <div class="error-msg" data-for="B_q4">Please answer question 4</div>
+
+            <label id="label-B_q5" class="q-label">5. Do you feel your ideas and feedback are valued by management?</label>
+            <div class="radio-group" data-qname="B_q5" role="radiogroup" aria-labelledby="label-B_q5" data-required="true">
+              <label class="radio-item"><input type="radio" name="B_q5" value="Always" required> <span>Always</span></label>
+              <label class="radio-item"><input type="radio" name="B_q5" value="Sometimes"> <span>Sometimes</span></label>
+              <label class="radio-item"><input type="radio" name="B_q5" value="Rarely"> <span>Rarely</span></label>
+              <label class="radio-item"><input type="radio" name="B_q5" value="Never"> <span>Never</span></label>
+            </div>
+            <div class="error-msg" data-for="B_q5">Please answer question 5</div>
+          </div>
+        </details>
+
+        <!-- Other sections remain structurally identical but now include aria-labelledby and inline errors -->
+        <!-- For brevity I will keep the rest of sections structure the same pattern (C, D, E, F, G, Additional) -->
+        <!-- SECTION C -->
+        <details>
+          <summary>SECTION C: MANAGEMENT &amp; LEADERSHIP</summary>
+          <div class="section-body">
+            <label id="label-C_q1" class="q-label">1. How approachable is your immediate supervisor/manager?</label>
+            <div class="radio-group" data-qname="C_q1" role="radiogroup" aria-labelledby="label-C_q1" data-required="true">
+              <label class="radio-item"><input type="radio" name="C_q1" value="Very approachable" required> <span>Very approachable</span></label>
+              <label class="radio-item"><input type="radio" name="C_q1" value="Somewhat approachable"> <span>Somewhat approachable</span></label>
+              <label class="radio-item"><input type="radio" name="C_q1" value="Not approachable"> <span>Not approachable</span></label>
+            </div>
+            <div class="error-msg" data-for="C_q1">Please answer question 1</div>
+
+            <label id="label-C_q2" class="q-label">2. How well does management communicate goals and expectations?</label>
+            <div class="radio-group" data-qname="C_q2" role="radiogroup" aria-labelledby="label-C_q2" data-required="true">
+              <label class="radio-item"><input type="radio" name="C_q2" value="Very well" required> <span>Very well</span></label>
+              <label class="radio-item"><input type="radio" name="C_q2" value="Fairly well"> <span>Fairly well</span></label>
+              <label class="radio-item"><input type="radio" name="C_q2" value="Poorly"> <span>Poorly</span></label>
+              <label class="radio-item"><input type="radio" name="C_q2" value="Not at all"> <span>Not at all</span></label>
+            </div>
+            <div class="error-msg" data-for="C_q2">Please answer question 2</div>
+
+            <label id="label-C_q3" class="q-label">3. Do you feel supported by management in your work and professional growth?</label>
+            <div class="radio-group" data-qname="C_q3" role="radiogroup" aria-labelledby="label-C_q3" data-required="true">
+              <label class="radio-item"><input type="radio" name="C_q3" value="Yes" required> <span>Yes</span></label>
+              <label class="radio-item"><input type="radio" name="C_q3" value="No"> <span>No</span></label>
+              <label class="radio-item"><input type="radio" name="C_q3" value="Somewhat"> <span>Somewhat</span></label>
+            </div>
+            <div class="error-msg" data-for="C_q3">Please answer question 3</div>
+
+            <label id="label-C_q4" class="q-label">4. How would you rate the overall leadership of the company?</label>
+            <div class="radio-group" data-qname="C_q4" role="radiogroup" aria-labelledby="label-C_q4" data-required="true">
+              <label class="radio-item"><input type="radio" name="C_q4" value="Excellent" required> <span>Excellent</span></label>
+              <label class="radio-item"><input type="radio" name="C_q4" value="Good"> <span>Good</span></label>
+              <label class="radio-item"><input type="radio" name="C_q4" value="Fair"> <span>Fair</span></label>
+              <label class="radio-item"><input type="radio" name="C_q4" value="Poor"> <span>Poor</span></label>
+            </div>
+            <div class="error-msg" data-for="C_q4">Please answer question 4</div>
+          </div>
+        </details>
+
+        <!-- SECTION D -->
+        <details>
+          <summary>SECTION D: JOB SATISFACTION</summary>
+          <div class="section-body">
+            <label id="label-D_q1" class="q-label">1. How satisfied are you with your current role?</label>
+            <div class="radio-group" data-qname="D_q1" role="radiogroup" aria-labelledby="label-D_q1" data-required="true">
+              <label class="radio-item"><input type="radio" name="D_q1" value="Very satisfied" required> <span>Very satisfied</span></label>
+              <label class="radio-item"><input type="radio" name="D_q1" value="Satisfied"> <span>Satisfied</span></label>
+              <label class="radio-item"><input type="radio" name="D_q1" value="Neutral"> <span>Neutral</span></label>
+              <label class="radio-item"><input type="radio" name="D_q1" value="Dissatisfied"> <span>Dissatisfied</span></label>
+            </div>
+            <div class="error-msg" data-for="D_q1">Please answer question 1</div>
+
+            <label id="label-D_q2" class="q-label">2. Do you believe your workload is reasonable?</label>
+            <div class="radio-group" data-qname="D_q2" role="radiogroup" aria-labelledby="label-D_q2" data-required="true">
+              <label class="radio-item"><input type="radio" name="D_q2" value="Yes" required> <span>Yes</span></label>
+              <label class="radio-item"><input type="radio" name="D_q2" value="No"> <span>No</span></label>
+              <label class="radio-item"><input type="radio" name="D_q2" value="Sometimes"> <span>Sometimes</span></label>
+            </div>
+            <div class="error-msg" data-for="D_q2">Please answer question 2</div>
+
+            <label id="label-D_q3" class="q-label">3. Are your skills and talents being fully utilized in your current position?</label>
+            <div class="radio-group" data-qname="D_q3" role="radiogroup" aria-labelledby="label-D_q3" data-required="true">
+              <label class="radio-item"><input type="radio" name="D_q3" value="Yes" required> <span>Yes</span></label>
+              <label class="radio-item"><input type="radio" name="D_q3" value="No"> <span>No</span></label>
+              <label class="radio-item"><input type="radio" name="D_q3" value="Partially"> <span>Partially</span></label>
+            </div>
+            <div class="error-msg" data-for="D_q3">Please answer question 3</div>
+
+            <label id="label-D_q4" class="q-label">4. Do you see opportunities for career growth and advancement within the company?</label>
+            <div class="radio-group" data-qname="D_q4" role="radiogroup" aria-labelledby="label-D_q4" data-required="true">
+              <label class="radio-item"><input type="radio" name="D_q4" value="Yes" required> <span>Yes</span></label>
+              <label class="radio-item"><input type="radio" name="D_q4" value="No"> <span>No</span></label>
+              <label class="radio-item"><input type="radio" name="D_q4" value="Not sure"> <span>Not sure</span></label>
+            </div>
+            <div class="error-msg" data-for="D_q4">Please answer question 4</div>
+          </div>
+        </details>
+
+        <!-- SECTION E -->
+        <details>
+          <summary>SECTION E: REMUNERATION &amp; BENEFITS</summary>
+          <div class="section-body">
+            <label id="label-E_q1" class="q-label">1. How satisfied are you with your compensation (salary, allowances, etc.)?</label>
+            <div class="radio-group" data-qname="E_q1" role="radiogroup" aria-labelledby="label-E_q1" data-required="true">
+              <label class="radio-item"><input type="radio" name="E_q1" value="Very satisfied" required> <span>Very satisfied</span></label>
+              <label class="radio-item"><input type="radio" name="E_q1" value="Satisfied"> <span>Satisfied</span></label>
+              <label class="radio-item"><input type="radio" name="E_q1" value="Neutral"> <span>Neutral</span></label>
+              <label class="radio-item"><input type="radio" name="E_q1" value="Dissatisfied"> <span>Dissatisfied</span></label>
+            </div>
+            <div class="error-msg" data-for="E_q1">Please answer question 1</div>
+
+            <label id="label-E_q2" class="q-label">2. How satisfied are you with employee benefits (medical, leave, etc.)?</label>
+            <div class="radio-group" data-qname="E_q2" role="radiogroup" aria-labelledby="label-E_q2" data-required="true">
+              <label class="radio-item"><input type="radio" name="E_q2" value="Very satisfied" required> <span>Very satisfied</span></label>
+              <label class="radio-item"><input type="radio" name="E_q2" value="Satisfied"> <span>Satisfied</span></label>
+              <label class="radio-item"><input type="radio" name="E_q2" value="Neutral"> <span>Neutral</span></label>
+              <label class="radio-item"><input type="radio" name="E_q2" value="Dissatisfied"> <span>Dissatisfied</span></label>
+            </div>
+            <div class="error-msg" data-for="E_q2">Please answer question 2</div>
+          </div>
+        </details>
+
+        <!-- SECTION F -->
+        <details>
+          <summary>SECTION F: COMPANY CULTURE &amp; TEAMWORK</summary>
+          <div class="section-body">
+            <label id="label-F_q1" class="q-label">1. How would you describe the teamwork in your department?</label>
+            <div class="radio-group" data-qname="F_q1" role="radiogroup" aria-labelledby="label-F_q1" data-required="true">
+              <label class="radio-item"><input type="radio" name="F_q1" value="Excellent" required> <span>Excellent</span></label>
+              <label class="radio-item"><input type="radio" name="F_q1" value="Good"> <span>Good</span></label>
+              <label class="radio-item"><input type="radio" name="F_q1" value="Fair"> <span>Fair</span></label>
+              <label class="radio-item"><input type="radio" name="F_q1" value="Poor"> <span>Poor</span></label>
+            </div>
+            <div class="error-msg" data-for="F_q1">Please answer question 1</div>
+
+            <label id="label-F_q2" class="q-label">2. Do you feel the company promotes fairness, respect, and equal opportunity?</label>
+            <div class="radio-group" data-qname="F_q2" role="radiogroup" aria-labelledby="label-F_q2" data-required="true">
+              <label class="radio-item"><input type="radio" name="F_q2" value="Yes" required> <span>Yes</span></label>
+              <label class="radio-item"><input type="radio" name="F_q2" value="No"> <span>No</span></label>
+              <label class="radio-item"><input type="radio" name="F_q2" value="Sometimes"> <span>Sometimes</span></label>
+            </div>
+            <div class="error-msg" data-for="F_q2">Please answer question 2</div>
+
+            <label id="label-F_q3" class="q-label">3. How motivated do you feel coming to work each day?</label>
+            <div class="radio-group" data-qname="F_q3" role="radiogroup" aria-labelledby="label-F_q3" data-required="true">
+              <label class="radio-item"><input type="radio" name="F_q3" value="Very motivated" required> <span>Very motivated</span></label>
+              <label class="radio-item"><input type="radio" name="F_q3" value="Somewhat motivated"> <span>Somewhat motivated</span></label>
+              <label class="radio-item"><input type="radio" name="F_q3" value="Not motivated"> <span>Not motivated</span></label>
+            </div>
+            <div class="error-msg" data-for="F_q3">Please answer question 3</div>
+          </div>
+        </details>
+
+        <!-- SECTION G -->
+        <details>
+          <summary>SECTION G: SUGGESTIONS AND COMMENTS</summary>
+          <div class="section-body">
+            <label for="G_q1" class="q-label">1. What do you like most about working in this company?</label>
+            <textarea id="G_q1" name="G_q1" placeholder="Your answer (optional)"></textarea>
+
+            <label for="G_q2" class="q-label">2. What areas do you feel need improvement?</label>
+            <textarea id="G_q2" name="G_q2" placeholder="Your answer (optional)"></textarea>
+
+            <label for="G_q3" class="q-label">3. What suggestions do you have for management to improve staff morale, efficiency, and retention?</label>
+            <textarea id="G_q3" name="G_q3" placeholder="Your suggestions (optional)"></textarea>
+          </div>
+        </details>
+
+        <!-- ADDITIONAL QUESTIONS -->
+        <details>
+          <summary>ADDITIONAL QUESTIONS</summary>
+          <div class="section-body">
+            <label id="label-X_q1" class="q-label">1. Do you have a signed contract?</label>
+            <div class="radio-group" data-qname="X_q1" role="radiogroup" aria-labelledby="label-X_q1" data-required="true">
+              <label class="radio-item"><input type="radio" name="X_q1" value="Yes" required> <span>Yes</span></label>
+              <label class="radio-item"><input type="radio" name="X_q1" value="No"> <span>No</span></label>
+            </div>
+            <div class="error-msg" data-for="X_q1">Please answer question 1</div>
+
+            <label id="label-X_q2" class="q-label">2. Do you have a clear job description given to you?</label>
+            <div class="radio-group" data-qname="X_q2" role="radiogroup" aria-labelledby="label-X_q2" data-required="true">
+              <label class="radio-item"><input type="radio" name="X_q2" value="Yes" required> <span>Yes</span></label>
+              <label class="radio-item"><input type="radio" name="X_q2" value="No"> <span>No</span></label>
+            </div>
+            <div class="error-msg" data-for="X_q2">Please answer question 2</div>
+
+            <label id="label-X_q3" class="q-label">3. Do you have clear Key Performance Indicators given to you to understand how your performance is evaluated?</label>
+            <div class="radio-group" data-qname="X_q3" role="radiogroup" aria-labelledby="label-X_q3" data-required="true">
+              <label class="radio-item"><input type="radio" name="X_q3" value="Yes" required> <span>Yes</span></label>
+              <label class="radio-item"><input type="radio" name="X_q3" value="No"> <span>No</span></label>
+            </div>
+            <div class="error-msg" data-for="X_q3">Please answer question 3</div>
+
+            <label for="X_q4" class="q-label">4. Which additional services do you think are in demand and the hospital should add?</label>
+            <textarea id="X_q4" name="X_q4" placeholder="List any services you think are in demand (optional)"></textarea>
+          </div>
+        </details>
+
+        <div class="actions">
+          <button type="submit" class="submit-btn" id="submitBtn" aria-live="polite">Submit Feedback</button>
+        </div>
+
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const form = document.getElementById('feedbackForm');
+      const status = document.getElementById('status');
+      const hospitalSelect = document.getElementById('hospital');
+      const hospitalNameInput = document.getElementById('hospitalName');
+      const submitBtn = document.getElementById('submitBtn');
+      const honeypot = document.getElementById('website');
+
+      // track whether submission is in progress
+      let isSubmitting = false;
+
+      // record load time to detect extremely fast submissions (simple bot heuristic)
+      const formLoadTime = Date.now();
+
+      // List of required radio groups (keeps parity with the inputs)
+      const requiredRadioGroups = [
+        'A_q1','A_q2',
+        'B_q1','B_q2','B_q3','B_q4','B_q5',
+        'C_q1','C_q2','C_q3','C_q4',
+        'D_q1','D_q2','D_q3','D_q4',
+        'E_q1','E_q2',
+        'F_q1','F_q2','F_q3',
+        'X_q1','X_q2','X_q3'
+      ];
+
+      // Helper: check a radio group has a checked input
+      function validateRadioGroup(name){
+        return !!form.querySelector('input[name="'+name+'"]:checked');
+      }
+
+      // Helper: mark/unmark radio-group container for inline errors
+      function setRadioGroupError(name, message){
+        const group = form.querySelector('.radio-group[data-qname="'+name+'"]');
+        const err = form.querySelector('.error-msg[data-for="'+name+'"]');
+        if(group && err){
+          if(message){
+            group.classList.add('invalid');
+            err.textContent = message;
+            err.style.display = 'block';
+          } else {
+            group.classList.remove('invalid');
+            err.textContent = '';
+            err.style.display = 'none';
+          }
+        }
+      }
+
+      // Populate human-readable hospital name into hidden input when selection changes
+      hospitalSelect.addEventListener('change', () => {
+        const selected = hospitalSelect.options[hospitalSelect.selectedIndex];
+        hospitalNameInput.value = selected ? selected.text : '';
+        setRadioGroupError('hospital', ''); // just in case
+      });
+
+      // On load if value present (useful if opened with ?hospital=slug)
+      if(hospitalSelect.value){
+        const selected = hospitalSelect.options[hospitalSelect.selectedIndex];
+        hospitalNameInput.value = selected ? selected.text : '';
+      }
+
+      // Attach quick inline validation on change to clear errors as user answers
+      document.querySelectorAll('.radio-group input[type="radio"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          const name = e.target.name;
+          if(validateRadioGroup(name)){
+            setRadioGroupError(name, '');
+          }
+        });
+      });
+
+      // Focus helper: focus first input in a radio group
+      function focusFirstRadio(name){
+        const el = form.querySelector('input[name="'+name+'"]');
+        if(el) el.focus();
+      }
+
+      // Disable/enable submit UI
+      function setSubmitting(on){
+        isSubmitting = !!on;
+        submitBtn.disabled = !!on;
+        submitBtn.setAttribute('aria-busy', on ? 'true' : 'false');
+        submitBtn.textContent = on ? 'Submitting…' : 'Submit Feedback';
+      }
+
+      // Collect form data into plain object
+      function collectPayload() {
+        const fd = new FormData(form);
+        const payload = {};
+        for(const [k,v] of fd.entries()){
+          payload[k] = v;
+        }
+        payload.submittedAt = new Date().toISOString();
+        return payload;
+      }
+
+      // Simple client-side spam heuristics
+      function isLikelySpam(payload){
+        // honeypot filled
+        if(honeypot && honeypot.value.trim()){
+          return { spam: true, reason: 'honeypot' };
+        }
+        // submitted too fast (less than 2s)
+        const elapsed = (Date.now() - formLoadTime) / 1000;
+        if(elapsed < 2){
+          return { spam: true, reason: 'too-fast' };
+        }
+        // trivial: identical hospitalName missing
+        if(!payload.hospitalValue || !payload.hospitalName){
+          return { spam: true, reason: 'missing-hospital' };
+        }
+        return { spam: false };
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        status.textContent = '';
+        status.className = 'status';
+
+        if(isSubmitting){
+          // prevent double submit
+          return;
+        }
+
+        // Native validation for required controls (select is required)
+        if(!form.checkValidity()){
+          // focus first invalid element
+          const firstInvalid = form.querySelector(':invalid');
+          if(firstInvalid) firstInvalid.focus();
+          status.textContent = 'Please complete the required fields.';
+          status.classList.add('error');
+          return;
+        }
+
+        // Validate all radio groups and show inline errors
+        for(const name of requiredRadioGroups){
+          if(!validateRadioGroup(name)){
+            setRadioGroupError(name, 'Please select an option for this question.');
+            // expand the section containing this input to guide the user
+            const el = form.querySelector('input[name="'+name+'"]');
+            if(el){
+              const details = el.closest('details');
+              if(details) details.open = true;
+              focusFirstRadio(name);
+            }
+            status.textContent = 'Please answer all the required questions (open each section and complete them).';
+            status.classList.add('error');
+            return;
+          } else {
+            setRadioGroupError(name, '');
+          }
+        }
+
+        // Ensure hospital is selected and human name provided
+        if(!hospitalSelect.value){
+          status.textContent = 'Please select your hospital.';
+          status.classList.add('error');
+          hospitalSelect.focus();
+          return;
+        }
+        if(!hospitalNameInput.value){
+          hospitalNameInput.value = hospitalSelect.options[hospitalSelect.selectedIndex].text || hospitalSelect.value;
+        }
+
+        // collect payload
+        const payload = collectPayload();
+
+        // spam heuristics
+        const spamCheck = isLikelySpam(payload);
+        if(spamCheck.spam){
+          console.warn('Spam detected:', spamCheck.reason);
+          status.textContent = 'Submission rejected.';
+          status.classList.add('error');
+          return;
+        }
+
+        // Submit to endpoint (placeholder). Replace with your real API endpoint.
+        // The endpoint is expected to accept JSON POST.
+        const endpoint = 'https://example.com/api/feedback'; // <-- replace with your real endpoint
+
+        setSubmitting(true);
+        try{
+          // Attempt to send JSON to endpoint
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            mode: 'cors'
+          });
+
+          if(res.ok){
+            // success
+            console.log('Submission payload:', payload);
+            status.textContent = 'Thanks — your feedback has been submitted.';
+            status.classList.add('success');
+
+            // subtle highlight of form to indicate success
+            form.classList.add('submitted-highlight');
+
+            // reset after short delay so user sees success
+            setTimeout(() => {
+              form.reset();
+              hospitalNameInput.value = '';
+              document.querySelectorAll('details').forEach(d => d.open = false);
+              // clear inline errors
+              document.querySelectorAll('.radio-group.invalid').forEach(g => g.classList.remove('invalid'));
+              document.querySelectorAll('.error-msg').forEach(e => { e.style.display='none'; e.textContent=''; });
+              status.textContent = '';
+              status.className = 'status';
+              form.classList.remove('submitted-highlight');
+              setSubmitting(false);
+            }, 1400);
+          } else {
+            // server returned an error
+            let text = await res.text().catch(()=>res.statusText);
+            console.error('Submission failed', res.status, text);
+            status.textContent = 'Failed to submit feedback. Please try again later.';
+            status.classList.add('error');
+            setSubmitting(false);
+          }
+        } catch(err){
+          console.error('Submit error', err);
+          // fallback: log payload to console so developer can capture it if endpoint missing
+          console.log('Payload (local fallback):', payload);
+          status.textContent = 'Could not reach server. Your response was saved to the console (developer).';
+          status.classList.add('error');
+          setSubmitting(false);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
