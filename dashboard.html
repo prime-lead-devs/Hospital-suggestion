@@ -63,7 +63,7 @@ input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px so
   </div>
 </div>
 
-<!-- Module script moved to the end to avoid null errors -->
+<!-- Firebase Logic -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
@@ -247,7 +247,8 @@ function openAnswers(hospital, feedbacks){
     });
 
     QUESTION_ORDER.forEach(q => {
-      const key = `${q.section} q${q.q}`;
+      // ✅ Corrected key format (matches A_q1, B_q3, etc.)
+      const key = `${q.section}_q${q.q}`;
       const answer = fb[key] || "No response";
       const p = document.createElement("div");
       p.textContent = `${q.text}: ${answer}`;
