@@ -100,19 +100,19 @@ const answersTitle = document.getElementById("answersTitle");
 const answersList = document.getElementById("answersList");
 const backBtn = document.getElementById("backBtn");
 
-// ===== Hospitals List =====
-const HOSPITALS = [
-  "The Matuu Hospital",
-  "Reliable Healthcare Services Hospital",
-  "Ekalakala Nursing Home",
-  "Ultrakathiani Hospital",
-  "Ultrakathiani Hospital- Mitaboni",
-  "Namanga Nursing Home",
-  "Ginger Hospital",
-  "Kwa Vonza Cottage Hospital"
-];
+// ===== Hospital mapping =====
+const HOSPITAL_MAP = {
+  "the-matuu-hospital": "The Matuu Hospital",
+  "reliable-healthcare-services-hospital": "Reliable Healthcare Services Hospital",
+  "ekalakala-nursing-home": "Ekalakala Nursing Home",
+  "ultrakathiani-hospital": "Ultrakathiani Hospital",
+  "ultrakathiani-hospital-mitaboni": "Ultrakathiani Hospital- Mitaboni",
+  "namanga-nursing-home": "Namanga Nursing Home",
+  "ginger-hospital": "Ginger Hospital",
+  "kwa-vonza-cottage-hospital": "Kwa Vonza Cottage Hospital"
+};
 
-// ===== Question Order =====
+// ===== Question order =====
 const QUESTION_ORDER = [
   { section: "A", q: 1, text: "How long have you worked with the company?" },
   { section: "A", q: 3, text: "What is your employment status?" },
@@ -166,7 +166,7 @@ onAuthStateChanged(auth, async user => {
   if(user){
     loginContainer.style.display = "none";
     dashboardContainer.style.display = "block";
-    listenToFeedbacks();
+    listenToFeedbacks(); // real-time updates
   } else {
     loginContainer.style.display = "block";
     dashboardContainer.style.display = "none";
@@ -188,21 +188,21 @@ function populateDashboard(feedbacks){
   const grouped = groupByHospital(feedbacks);
   dashboardBody.innerHTML = "";
 
-  HOSPITALS.forEach(hospital => {
+  Object.entries(HOSPITAL_MAP).forEach(([key, displayName]) => {
     const tr = document.createElement("tr");
 
     const tdName = document.createElement("td");
-    tdName.textContent = hospital;
+    tdName.textContent = displayName;
     tr.appendChild(tdName);
 
     const tdCount = document.createElement("td");
-    tdCount.textContent = (grouped[hospital.toLowerCase()] || grouped[hospital] || []).length;
+    tdCount.textContent = (grouped[key] || []).length;
     tr.appendChild(tdCount);
 
     const tdAction = document.createElement("td");
     const btn = document.createElement("button");
     btn.textContent = "View";
-    btn.addEventListener("click", () => openAnswers(hospital, grouped[hospital.toLowerCase()] || grouped[hospital] || []));
+    btn.addEventListener("click", () => openAnswers(displayName, grouped[key] || []));
     tdAction.appendChild(btn);
     tr.appendChild(tdAction);
 
@@ -216,7 +216,7 @@ function populateDashboard(feedbacks){
 function groupByHospital(feedbacks){
   const grouped = {};
   feedbacks.forEach(f => {
-    const name = (f.hospitalName || "Unknown").trim().toLowerCase();
+    const name = (f.hospitalName || "unknown").toLowerCase();
     if(!grouped[name]) grouped[name] = [];
     grouped[name].push(f);
   });
@@ -252,7 +252,7 @@ function openAnswers(hospital, feedbacks){
       content.style.display = content.style.display === "none" ? "block" : "none";
     });
 
-    // ✅ Display answers in proper order
+    // Display answers in QUESTION_ORDER
     QUESTION_ORDER.forEach(q => {
       const key = `${q.section}_q${q.q}`;
       const answer = fb[key] || "No response";
@@ -269,3 +269,4 @@ function openAnswers(hospital, feedbacks){
 </script>
 </body>
 </html>
+
