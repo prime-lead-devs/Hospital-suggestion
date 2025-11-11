@@ -1,26 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Manager Dashboard</title>
 <style>
 body { font-family: Arial, sans-serif; margin:20px; background:#f8f9fa; color:#111; }
 h1 { color:#0a7b3f; text-align:center; }
-.card { background:#fff; padding:20px; border-radius:10px; max-width:900px; margin:20px auto; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
+.card { background:#fff; padding:20px; border-radius:10px; max-width:1000px; margin:20px auto; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
 table { width:100%; border-collapse:collapse; margin-top:20px; }
 th, td { padding:10px; border:1px solid #ccc; text-align:left; }
 th { background:#eee; }
 button { padding:6px 10px; border:none; border-radius:5px; cursor:pointer; background:#0b5ed7; color:#fff; }
 #loginForm { max-width:400px; margin:50px auto; }
-input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px solid #ccc; }
+input, select { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px solid #ccc; }
 .logout { float:right; background:#d9534f; }
 .small { font-size:0.9rem; color:#666; }
-.answers-list { margin-top:10px; }
+.answers-list { margin-top:10px; max-height:500px; overflow-y:auto; }
 .answer { padding:10px; border-bottom:1px solid #eee; }
 .meta { font-size:0.85rem; color:#666; margin-bottom:6px; }
 .back { margin-top:12px; background:#6c757d; }
 .empty { color:#666; padding:10px; }
+.summary-cards { display:flex; gap:20px; flex-wrap:wrap; margin-top:20px; }
+.summary-card { flex:1; background:#e6f4ea; padding:15px; border-radius:8px; text-align:center; box-shadow:0 3px 8px rgba(0,0,0,0.05);}
+.summary-card.negative { background:#fdecea; color:#d9534f;}
+.summary-card h2 { margin:5px 0; font-size:1.5rem;}
+.collapsible { cursor:pointer; background:#eee; padding:8px; border-radius:5px; margin-top:5px; }
+.content { display:none; padding:10px; border-left:2px solid #0b5ed7; margin-bottom:5px; }
+.positive { color:green; }
+.neutral { color:orange; }
+.negative { color:red; }
 </style>
 </head>
 <body>
@@ -40,16 +49,20 @@ input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px so
 <div id="dashboardContainer" class="card" style="display:none;">
   <h1>Manager Dashboard</h1>
   <button id="logoutBtn" class="logout">Logout</button>
-  <table>
-    <thead>
-      <tr>
-        <th>Hospital Name</th>
-        <th>Total Feedbacks</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="dashboardBody"></tbody>
-  </table>
+  
+  <div class="summary-cards">
+    <div class="summary-card" id="totalFeedbacks"><h2>0</h2><p>Total Feedbacks</p></div>
+    <div class="summary-card" id="positiveCount"><h2>0</h2><p>Positive Responses</p></div>
+    <div class="summary-card" id="neutralCount"><h2>0</h2><p>Neutral Responses</p></div>
+    <div class="summary-card negative" id="negativeCount"><h2>0</h2><p>Negative Responses</p></div>
+  </div>
+
+  <label for="hospitalFilter">Filter by Hospital:</label>
+  <select id="hospitalFilter">
+    <option value="all">All Hospitals</option>
+  </select>
+
+  <div id="questionsContainer"></div>
   <p id="noDataMessage" class="small" style="display:none;">No feedbacks found.</p>
 </div>
 
@@ -66,7 +79,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebas
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
 
-// ===== Firebase config =====
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDvVUrCLZj3Afu5MFqu5EhOGejyTfqEjgY",
   authDomain: "suggestion-box-4b869.firebaseapp.com",
@@ -81,18 +94,21 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ===== DOM elements =====
+// DOM elements
 const loginContainer = document.getElementById("loginContainer");
 const dashboardContainer = document.getElementById("dashboardContainer");
 const answersContainer = document.getElementById("answersContainer");
 const loginForm = document.getElementById("loginForm");
 const loginError = document.getElementById("loginError");
-const dashboardBody = document.getElementById("dashboardBody");
 const logoutBtn = document.getElementById("logoutBtn");
-const noDataMessage = document.getElementById("noDataMessage");
-const answersTitle = document.getElementById("answersTitle");
-const answersList = document.getElementById("answersList");
 const backBtn = document.getElementById("backBtn");
+const hospitalFilter = document.getElementById("hospitalFilter");
+const questionsContainer = document.getElementById("questionsContainer");
+const totalFeedbacksEl = document.getElementById("totalFeedbacks").querySelector("h2");
+const positiveCountEl = document.getElementById("positiveCount").querySelector("h2");
+const neutralCountEl = document.getElementById("neutralCount").querySelector("h2");
+const negativeCountEl = document.getElementById("negativeCount").querySelector("h2");
+const noDataMessage = document.getElementById("noDataMessage");
 
 const HOSPITALS = [
   "The Matuu Hospital",
@@ -105,7 +121,7 @@ const HOSPITALS = [
   "Kwa Vonza Cottage Hospital"
 ];
 
-// ===== Login =====
+// Login
 loginForm.addEventListener("submit", async e => {
   e.preventDefault();
   loginError.textContent = "";
@@ -119,18 +135,16 @@ loginForm.addEventListener("submit", async e => {
   }
 });
 
-// ===== Logout =====
-logoutBtn.addEventListener("click", async () => {
-  await signOut(auth);
-});
+// Logout
+logoutBtn.addEventListener("click", async () => await signOut(auth));
 
-// ===== Back button =====
+// Back button
 backBtn.addEventListener("click", () => {
   answersContainer.style.display = "none";
   dashboardContainer.style.display = "block";
 });
 
-// ===== Auth state listener =====
+// Auth state listener
 onAuthStateChanged(auth, async user => {
   if(user){
     loginContainer.style.display = "none";
@@ -143,118 +157,79 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// ===== Populate dashboard =====
+// Populate Dashboard
 async function populateDashboard(){
-  try {
-    const snapshot = await getDocs(collection(db, "feedbacks"));
-    const feedbacks = snapshot.docs.map(doc => doc.data());
-    const grouped = groupByHospital(feedbacks);
+  const snapshot = await getDocs(collection(db,"feedbacks"));
+  const feedbacks = snapshot.docs.map(doc => doc.data());
+  if(feedbacks.length===0){ noDataMessage.style.display="block"; return; } else noDataMessage.style.display="none";
 
-    dashboardBody.innerHTML = "";
-    HOSPITALS.forEach(hospital => {
-      const tr = document.createElement("tr");
-
-      const tdName = document.createElement("td");
-      tdName.textContent = hospital;
-      tr.appendChild(tdName);
-
-      const tdCount = document.createElement("td");
-      tdCount.textContent = (grouped[hospital] || []).length;
-      tr.appendChild(tdCount);
-
-      const tdAction = document.createElement("td");
-      const btn = document.createElement("button");
-      btn.textContent = "View";
-      btn.addEventListener("click", () => openAnswers(hospital, grouped[hospital] || []));
-      tdAction.appendChild(btn);
-      tr.appendChild(tdAction);
-
-      dashboardBody.appendChild(tr);
-    });
-
-    noDataMessage.style.display = feedbacks.length === 0 ? "block" : "none";
-  } catch(err) {
-    console.error("Error fetching feedbacks:", err);
-    dashboardBody.innerHTML = "<tr><td colspan='3'>Error loading feedbacks.</td></tr>";
-  }
-}
-
-// ===== Group feedbacks by hospital =====
-function groupByHospital(feedbacks){
-  const grouped = {};
-  feedbacks.forEach(f => {
-    const name = (f.hospitalName || "Unknown").toString().trim();
-    if(!grouped[name]) grouped[name] = [];
-    grouped[name].push(f);
-  });
-  return grouped;
-}
-
-// ===== Show answers per hospital =====
-function openAnswers(hospital, feedbacks){
-  dashboardContainer.style.display = "none";
-  answersContainer.style.display = "block";
-  answersTitle.textContent = "Answers — " + hospital;
-  answersList.innerHTML = "";
-
-  if(!feedbacks || feedbacks.length === 0){
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "No answers yet for this hospital.";
-    answersList.appendChild(empty);
-    return;
-  }
-
-  feedbacks.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-
-  feedbacks.forEach(fb => {
-    const div = document.createElement("div");
-    div.className = "answer";
-
-    // Timestamp
-    let createdAtText = "n/a";
-    if(fb.createdAt && fb.createdAt.seconds){
-      const date = new Date(fb.createdAt.seconds * 1000);
-      createdAtText = date.toLocaleString();
-    }
-
-    const meta = document.createElement("div");
-    meta.className = "meta";
-    meta.textContent = `${createdAtText} — ${fb.author || "anonymous"}`;
-    div.appendChild(meta);
-
-    // Separate written & choice answers
-    const written = document.createElement("div");
-    written.innerHTML = "<strong>Written Answers:</strong>";
-    const choice = document.createElement("div");
-    choice.innerHTML = "<strong>Selected Options:</strong>";
-
-    let hasWritten = false, hasChoice = false;
-
-    Object.keys(fb).forEach(key => {
+  // Summary counts
+  let total=feedbacks.length, pos=0, neu=0, neg=0;
+  feedbacks.forEach(f=>{
+    Object.keys(f).forEach(key=>{
       if(["createdAt","hospitalName","author"].includes(key)) return;
-      const value = fb[key];
-      if(Array.isArray(value) || (typeof value === "string" && value.includes(","))){
-        const p = document.createElement("div");
-        const valText = Array.isArray(value) ? value.join(", ") : value;
-        p.textContent = `${key.replace(/_/g," ")}: ${valText}`;
-        choice.appendChild(p);
-        hasChoice = true;
-      } else if(typeof value === "string"){
-        const p = document.createElement("div");
-        p.textContent = `${key.replace(/_/g," ")}: ${value}`;
-        written.appendChild(p);
-        hasWritten = true;
+      const v=f[key].toString().toLowerCase();
+      if(v.includes("yes")||v.includes("excellent")||v.includes("very")) pos++;
+      else if(v.includes("fair")||v.includes("somewhat")||v.includes("neutral")) neu++;
+      else neg++;
+    });
+  });
+  totalFeedbacksEl.textContent=total;
+  positiveCountEl.textContent=pos;
+  neutralCountEl.textContent=neu;
+  negativeCountEl.textContent=neg;
+
+  // Populate hospital filter
+  hospitalFilter.innerHTML='<option value="all">All Hospitals</option>';
+  HOSPITALS.forEach(h=>{hospitalFilter.innerHTML+=`<option value="${h}">${h}</option>`;});
+
+  renderQuestions(feedbacks);
+
+  hospitalFilter.addEventListener("change", ()=>renderQuestions(feedbacks));
+}
+
+// Render questions grouped view
+function renderQuestions(feedbacks){
+  const selectedHospital = hospitalFilter.value;
+  let filtered = selectedHospital==="all"?feedbacks:feedbacks.filter(f=>f.hospitalName===selectedHospital);
+
+  // Group by question
+  const questionsMap = {};
+  filtered.forEach(f=>{
+    Object.keys(f).forEach(key=>{
+      if(["createdAt","hospitalName","author"].includes(key)) return;
+      if(!questionsMap[key]) questionsMap[key]=[];
+      questionsMap[key].push(f[key]);
+    });
+  });
+
+  questionsContainer.innerHTML="";
+  for(const q in questionsMap){
+    const card=document.createElement("div");
+    card.className="collapsible";
+    card.textContent=q+" ("+questionsMap[q].length+" responses)";
+    const content=document.createElement("div");
+    content.className="content";
+    
+    questionsMap[q].forEach(ans=>{
+      const p=document.createElement("div");
+      const val=ans.toString();
+      if(val.toLowerCase().includes("yes")||val.toLowerCase().includes("excellent")||val.toLowerCase().includes("very")){
+        p.innerHTML=`<span class="positive">${val}</span>`;
+      } else if(val.toLowerCase().includes("fair")||val.toLowerCase().includes("somewhat")||val.toLowerCase().includes("neutral")){
+        p.innerHTML=`<span class="neutral">${val}</span>`;
+      } else {
+        p.innerHTML=`<span class="negative">${val}</span>`;
       }
+      content.appendChild(p);
     });
 
-    if(hasWritten) div.appendChild(written);
-    if(hasChoice) div.appendChild(choice);
-
-    answersList.appendChild(div);
-  });
+    card.addEventListener("click",()=>{content.style.display=content.style.display==="block"?"none":"block";});
+    questionsContainer.appendChild(card);
+    questionsContainer.appendChild(content);
+  }
 }
 </script>
-
 </body>
 </html>
+
