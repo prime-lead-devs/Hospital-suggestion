@@ -21,7 +21,6 @@ input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px so
 .response { border:1px solid #ccc; border-radius:5px; margin-bottom:10px; padding:10px; background:#f9f9f9; }
 .response-header { font-weight:bold; cursor:pointer; background:#e9ecef; padding:6px; border-radius:5px; }
 .response-content { display:none; margin-top:6px; }
-.no-answer { color:red; font-style:italic; }
 .meta { font-size:0.85rem; color:#666; margin-bottom:6px; }
 .back { margin-top:12px; background:#6c757d; }
 .empty { color:#666; padding:10px; }
@@ -102,6 +101,18 @@ const answersTitle = document.getElementById("answersTitle");
 const answersList = document.getElementById("answersList");
 const backBtn = document.getElementById("backBtn");
 
+// ===== All hospitals =====
+const ALL_HOSPITALS = [
+  "The Matuu Hospital",
+  "Reliable Healthcare Services Hospital",
+  "Ekalakala Nursing Home",
+  "Ultrakathiani Hospital",
+  "Ultrakathiani Hospital- Mitaboni",
+  "Namanga Nursing Home",
+  "Ginger Hospital",
+  "Kwa Vonza Cottage Hospital"
+];
+
 // ===== Question order =====
 const QUESTION_ORDER = [
   { section: "A", q: 1, text: "How long have you worked with the company?" },
@@ -124,18 +135,6 @@ const QUESTION_ORDER = [
   { section: "F", q: 1, text: "How would you describe the teamwork in your department?" },
   { section: "F", q: 3, text: "Do you feel the company promotes fairness, respect, and equal opportunity?" },
   { section: "F", q: 5, text: "How motivated do you feel coming to work each day?" }
-];
-
-// ===== All hospitals list =====
-const ALL_HOSPITALS = [
-  "The Matuu Hospital",
-  "Reliable Healthcare Services Hospital",
-  "Ekalakala Nursing Home",
-  "Ultrakathiani Hospital",
-  "Ultrakathiani Hospital- Mitaboni",
-  "Namanga Nursing Home",
-  "Ginger Hospital",
-  "Kwa Vonza Cottage Hospital"
 ];
 
 // ===== Login =====
@@ -168,7 +167,7 @@ onAuthStateChanged(auth, async user => {
   if(user){
     loginContainer.style.display = "none";
     dashboardContainer.style.display = "block";
-    listenToFeedbacks();
+    listenToFeedbacks(); // real-time updates
   } else {
     loginContainer.style.display = "block";
     dashboardContainer.style.display = "none";
@@ -176,7 +175,7 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// ===== Real-time feedback listener =====
+// ===== Real-time listener =====
 function listenToFeedbacks(){
   const q = query(collection(db, "feedbacks"), orderBy("createdAt", "desc"));
   onSnapshot(q, snapshot => {
@@ -187,25 +186,36 @@ function listenToFeedbacks(){
 
 // ===== Populate dashboard =====
 function populateDashboard(feedbacks){
-  const grouped = groupByHospital(feedbacks);
+  const grouped = {}; // normalized grouping
+
+  feedbacks.forEach(f => {
+    if(!f.hospitalName) return;
+    const nameNorm = f.hospitalName.trim().toLowerCase();
+    if(!grouped[nameNorm]) grouped[nameNorm] = [];
+    grouped[nameNorm].push(f);
+  });
+
   dashboardBody.innerHTML = "";
 
-  ALL_HOSPITALS.forEach(hospital => {
+  ALL_HOSPITALS.forEach(displayName => {
+    const normName = displayName.trim().toLowerCase();
+    const feedbackList = grouped[normName] || [];
+
     const tr = document.createElement("tr");
 
     const tdName = document.createElement("td");
-    tdName.textContent = hospital;
+    tdName.textContent = displayName;
     tr.appendChild(tdName);
 
     const tdCount = document.createElement("td");
-    tdCount.textContent = (grouped[hospital] || []).length;
+    tdCount.textContent = feedbackList.length;
     tr.appendChild(tdCount);
 
     const tdAction = document.createElement("td");
     const btn = document.createElement("button");
     btn.textContent = "View";
-    btn.disabled = !(grouped[hospital] && grouped[hospital].length > 0);
-    btn.addEventListener("click", () => openAnswers(hospital, grouped[hospital] || []));
+    btn.disabled = feedbackList.length === 0;
+    btn.addEventListener("click", () => openAnswers(displayName, feedbackList));
     tdAction.appendChild(btn);
     tr.appendChild(tdAction);
 
@@ -213,17 +223,6 @@ function populateDashboard(feedbacks){
   });
 
   noDataMessage.style.display = feedbacks.length === 0 ? "block" : "none";
-}
-
-// ===== Group feedbacks =====
-function groupByHospital(feedbacks){
-  const grouped = {};
-  feedbacks.forEach(f => {
-    const name = (f.hospitalName || "Unknown").trim();
-    if(!grouped[name]) grouped[name] = [];
-    grouped[name].push(f);
-  });
-  return grouped;
 }
 
 // ===== Show answers =====
@@ -255,16 +254,12 @@ function openAnswers(hospital, feedbacks){
       content.style.display = content.style.display === "none" ? "block" : "none";
     });
 
+    // Show answers in proper order
     QUESTION_ORDER.forEach(q => {
       const key = `${q.section}_q${q.q}`;
-      const answer = fb[key];
+      const answer = fb[key] || "No response";
       const p = document.createElement("div");
-      if(answer){
-        p.textContent = `${q.text}: ${answer}`;
-      } else {
-        p.textContent = `${q.text}: No answer yet`;
-        p.className = "no-answer";
-      }
+      p.textContent = `${q.text}: ${answer}`;
       content.appendChild(p);
     });
 
@@ -276,4 +271,3 @@ function openAnswers(hospital, feedbacks){
 </script>
 </body>
 </html>
-
