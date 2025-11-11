@@ -190,6 +190,7 @@
     return grouped;
   }
 
+  // ✅ Fixed and improved version
   function openAnswersFor(hospital, feedbacks) {
     dashboardContainer.style.display = "none";
     answersContainer.style.display = "block";
@@ -204,13 +205,26 @@
       return;
     }
 
+    // Sort by newest first if timestamp exists
+    feedbacks.sort((a, b) => {
+      const aTime = a.createdAt?.seconds || 0;
+      const bTime = b.createdAt?.seconds || 0;
+      return bTime - aTime;
+    });
+
     feedbacks.forEach(fb => {
       const div = document.createElement("div");
       div.className = "answer";
 
+      let createdAtText = "n/a";
+      if (fb.createdAt && fb.createdAt.seconds) {
+        const date = new Date(fb.createdAt.seconds * 1000);
+        createdAtText = date.toLocaleString();
+      }
+
       const meta = document.createElement("div");
       meta.className = "meta";
-      meta.textContent = `${fb.createdAt || "n/a"} — ${fb.author || "anonymous"}`;
+      meta.textContent = `${createdAtText} — ${fb.author || "anonymous"}`;
       div.appendChild(meta);
 
       const msg = document.createElement("div");
@@ -224,3 +238,4 @@
 
 </body>
 </html>
+
