@@ -63,7 +63,6 @@ input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px so
   </div>
 </div>
 
-<!-- Firebase Logic -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
@@ -97,18 +96,7 @@ const answersTitle = document.getElementById("answersTitle");
 const answersList = document.getElementById("answersList");
 const backBtn = document.getElementById("backBtn");
 
-const HOSPITALS = [
-  "The Matuu Hospital",
-  "Reliable Healthcare Services Hospital",
-  "Ekalakala Nursing Home",
-  "Ultrakathiani Hospital",
-  "Ultrakathiani Hospital- Mitaboni",
-  "Namanga Nursing Home",
-  "Ginger Hospital",
-  "Kwa Vonza Cottage Hospital"
-];
-
-// Master Question Order
+// ===== Question Order =====
 const QUESTION_ORDER = [
   { section: "A", q: 1, text: "How long have you worked with the company?" },
   { section: "A", q: 3, text: "What is your employment status?" },
@@ -157,7 +145,7 @@ backBtn.addEventListener("click", () => {
   dashboardContainer.style.display = "block";
 });
 
-// ===== Auth state listener =====
+// ===== Auth listener =====
 onAuthStateChanged(auth, async user => {
   if(user){
     loginContainer.style.display = "none";
@@ -175,10 +163,15 @@ async function populateDashboard(){
   try {
     const snapshot = await getDocs(collection(db, "feedbacks"));
     const feedbacks = snapshot.docs.map(doc => doc.data());
+
+    // Get unique hospital names from Firestore
+    const hospitalsSet = new Set(feedbacks.map(f => (f.hospitalName || "Unknown").trim()));
+    const hospitals = Array.from(hospitalsSet);
+
     const grouped = groupByHospital(feedbacks);
 
     dashboardBody.innerHTML = "";
-    HOSPITALS.forEach(hospital => {
+    hospitals.forEach(hospital => {
       const tr = document.createElement("tr");
 
       const tdName = document.createElement("td");
@@ -200,24 +193,25 @@ async function populateDashboard(){
     });
 
     noDataMessage.style.display = feedbacks.length === 0 ? "block" : "none";
+
   } catch(err) {
     console.error("Error fetching feedbacks:", err);
     dashboardBody.innerHTML = "<tr><td colspan='3'>Error loading feedbacks.</td></tr>";
   }
 }
 
-// ===== Group feedbacks by hospital =====
+// ===== Group feedbacks =====
 function groupByHospital(feedbacks){
   const grouped = {};
   feedbacks.forEach(f => {
-    const name = (f.hospitalName || "Unknown").toString().trim();
+    const name = (f.hospitalName || "Unknown").trim();
     if(!grouped[name]) grouped[name] = [];
     grouped[name].push(f);
   });
   return grouped;
 }
 
-// ===== Show answers per hospital =====
+// ===== Show answers =====
 function openAnswers(hospital, feedbacks){
   dashboardContainer.style.display = "none";
   answersContainer.style.display = "block";
@@ -247,7 +241,6 @@ function openAnswers(hospital, feedbacks){
     });
 
     QUESTION_ORDER.forEach(q => {
-      // ✅ Corrected key format (matches A_q1, B_q3, etc.)
       const key = `${q.section}_q${q.q}`;
       const answer = fb[key] || "No response";
       const p = document.createElement("div");
