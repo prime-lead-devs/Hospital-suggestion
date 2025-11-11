@@ -12,6 +12,7 @@ table { width:100%; border-collapse:collapse; margin-top:20px; }
 th, td { padding:10px; border:1px solid #ccc; text-align:left; }
 th { background:#eee; }
 button { padding:6px 10px; border:none; border-radius:5px; cursor:pointer; background:#0b5ed7; color:#fff; }
+button:disabled { background:#ccc; cursor:not-allowed; }
 #loginForm { max-width:400px; margin:50px auto; }
 input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px solid #ccc; }
 .logout { float:right; background:#d9534f; }
@@ -20,6 +21,7 @@ input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px so
 .response { border:1px solid #ccc; border-radius:5px; margin-bottom:10px; padding:10px; background:#f9f9f9; }
 .response-header { font-weight:bold; cursor:pointer; background:#e9ecef; padding:6px; border-radius:5px; }
 .response-content { display:none; margin-top:6px; }
+.no-answer { color:red; font-style:italic; }
 .meta { font-size:0.85rem; color:#666; margin-bottom:6px; }
 .back { margin-top:12px; background:#6c757d; }
 .empty { color:#666; padding:10px; }
@@ -100,7 +102,7 @@ const answersTitle = document.getElementById("answersTitle");
 const answersList = document.getElementById("answersList");
 const backBtn = document.getElementById("backBtn");
 
-// ===== Question Order =====
+// ===== Question order =====
 const QUESTION_ORDER = [
   { section: "A", q: 1, text: "How long have you worked with the company?" },
   { section: "A", q: 3, text: "What is your employment status?" },
@@ -122,6 +124,18 @@ const QUESTION_ORDER = [
   { section: "F", q: 1, text: "How would you describe the teamwork in your department?" },
   { section: "F", q: 3, text: "Do you feel the company promotes fairness, respect, and equal opportunity?" },
   { section: "F", q: 5, text: "How motivated do you feel coming to work each day?" }
+];
+
+// ===== All hospitals list =====
+const ALL_HOSPITALS = [
+  "The Matuu Hospital",
+  "Reliable Healthcare Services Hospital",
+  "Ekalakala Nursing Home",
+  "Ultrakathiani Hospital",
+  "Ultrakathiani Hospital- Mitaboni",
+  "Namanga Nursing Home",
+  "Ginger Hospital",
+  "Kwa Vonza Cottage Hospital"
 ];
 
 // ===== Login =====
@@ -154,7 +168,7 @@ onAuthStateChanged(auth, async user => {
   if(user){
     loginContainer.style.display = "none";
     dashboardContainer.style.display = "block";
-    listenToFeedbacks(); // Real-time updates
+    listenToFeedbacks();
   } else {
     loginContainer.style.display = "block";
     dashboardContainer.style.display = "none";
@@ -173,15 +187,10 @@ function listenToFeedbacks(){
 
 // ===== Populate dashboard =====
 function populateDashboard(feedbacks){
-  // Get all hospitals from the feedbacks
   const grouped = groupByHospital(feedbacks);
-
-  // Optional: show all hospitals, even if no feedbacks yet
-  // Add "Unknown" hospital if none
-  const hospitals = Object.keys(grouped);
   dashboardBody.innerHTML = "";
 
-  hospitals.forEach(hospital => {
+  ALL_HOSPITALS.forEach(hospital => {
     const tr = document.createElement("tr");
 
     const tdName = document.createElement("td");
@@ -189,13 +198,14 @@ function populateDashboard(feedbacks){
     tr.appendChild(tdName);
 
     const tdCount = document.createElement("td");
-    tdCount.textContent = grouped[hospital].length;
+    tdCount.textContent = (grouped[hospital] || []).length;
     tr.appendChild(tdCount);
 
     const tdAction = document.createElement("td");
     const btn = document.createElement("button");
     btn.textContent = "View";
-    btn.addEventListener("click", () => openAnswers(hospital, grouped[hospital]));
+    btn.disabled = !(grouped[hospital] && grouped[hospital].length > 0);
+    btn.addEventListener("click", () => openAnswers(hospital, grouped[hospital] || []));
     tdAction.appendChild(btn);
     tr.appendChild(tdAction);
 
@@ -245,17 +255,15 @@ function openAnswers(hospital, feedbacks){
       content.style.display = content.style.display === "none" ? "block" : "none";
     });
 
-    // Show answers in proper order
     QUESTION_ORDER.forEach(q => {
       const key = `${q.section}_q${q.q}`;
       const answer = fb[key];
       const p = document.createElement("div");
-      if(answer && answer.trim() !== "") {
+      if(answer){
         p.textContent = `${q.text}: ${answer}`;
       } else {
-        p.textContent = `${q.text}: (No answer)`;
-        p.style.color = "#888";
-        p.style.fontStyle = "italic";
+        p.textContent = `${q.text}: No answer yet`;
+        p.className = "no-answer";
       }
       content.appendChild(p);
     });
