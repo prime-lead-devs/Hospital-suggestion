@@ -64,9 +64,13 @@ input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px so
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+import { 
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut 
+} from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
+import { 
+  getFirestore, collection, onSnapshot, query, orderBy 
+} from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
 // ===== Firebase config =====
 const firebaseConfig = {
@@ -95,30 +99,6 @@ const noDataMessage = document.getElementById("noDataMessage");
 const answersTitle = document.getElementById("answersTitle");
 const answersList = document.getElementById("answersList");
 const backBtn = document.getElementById("backBtn");
-
-// ===== Question Order =====
-const QUESTION_ORDER = [
-  { section: "A", q: 1, text: "How long have you worked with the company?" },
-  { section: "A", q: 3, text: "What is your employment status?" },
-  { section: "B", q: 1, text: "How would you rate your general work environment?" },
-  { section: "B", q: 3, text: "Do you feel you have the tools and resources needed?" },
-  { section: "B", q: 5, text: "How would you rate communication within your department?" },
-  { section: "B", q: 7, text: "How would you rate communication between departments?" },
-  { section: "B", q: 9, text: "Do you feel your ideas and feedback are valued by management?" },
-  { section: "C", q: 1, text: "How approachable is your immediate supervisor/manager?" },
-  { section: "C", q: 3, text: "How well does management communicate goals and expectations?" },
-  { section: "C", q: 5, text: "Do you feel supported by management in your work and professional growth?" },
-  { section: "C", q: 7, text: "How would you rate the overall leadership of the company?" },
-  { section: "D", q: 1, text: "How satisfied are you with your current role?" },
-  { section: "D", q: 3, text: "Do you believe your workload is reasonable?" },
-  { section: "D", q: 5, text: "Are your skills and talents being fully utilized in your current position?" },
-  { section: "D", q: 7, text: "Do you see opportunities for career growth and advancement?" },
-  { section: "E", q: 1, text: "How satisfied are you with your compensation?" },
-  { section: "E", q: 3, text: "How satisfied are you with employee benefits?" },
-  { section: "F", q: 1, text: "How would you describe the teamwork in your department?" },
-  { section: "F", q: 3, text: "Do you feel the company promotes fairness, respect, and equal opportunity?" },
-  { section: "F", q: 5, text: "How motivated do you feel coming to work each day?" }
-];
 
 // ===== Login =====
 loginForm.addEventListener("submit", async e => {
@@ -150,7 +130,7 @@ onAuthStateChanged(auth, async user => {
   if(user){
     loginContainer.style.display = "none";
     dashboardContainer.style.display = "block";
-    await populateDashboard();
+    listenToFeedbacks(); // Real-time updates
   } else {
     loginContainer.style.display = "block";
     dashboardContainer.style.display = "none";
@@ -158,46 +138,43 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// ===== Populate dashboard =====
-async function populateDashboard(){
-  try {
-    const snapshot = await getDocs(collection(db, "feedbacks"));
+// ===== Real-time feedback listener =====
+function listenToFeedbacks(){
+  const q = query(collection(db, "feedbacks"), orderBy("createdAt", "desc"));
+  onSnapshot(q, snapshot => {
     const feedbacks = snapshot.docs.map(doc => doc.data());
+    populateDashboard(feedbacks);
+  });
+}
 
-    // Get unique hospital names from Firestore
-    const hospitalsSet = new Set(feedbacks.map(f => (f.hospitalName || "Unknown").trim()));
-    const hospitals = Array.from(hospitalsSet);
+// ===== Populate dashboard =====
+function populateDashboard(feedbacks){
+  const grouped = groupByHospital(feedbacks);
+  const hospitals = Object.keys(grouped);
+  dashboardBody.innerHTML = "";
 
-    const grouped = groupByHospital(feedbacks);
+  hospitals.forEach(hospital => {
+    const tr = document.createElement("tr");
 
-    dashboardBody.innerHTML = "";
-    hospitals.forEach(hospital => {
-      const tr = document.createElement("tr");
+    const tdName = document.createElement("td");
+    tdName.textContent = hospital;
+    tr.appendChild(tdName);
 
-      const tdName = document.createElement("td");
-      tdName.textContent = hospital;
-      tr.appendChild(tdName);
+    const tdCount = document.createElement("td");
+    tdCount.textContent = grouped[hospital].length;
+    tr.appendChild(tdCount);
 
-      const tdCount = document.createElement("td");
-      tdCount.textContent = (grouped[hospital] || []).length;
-      tr.appendChild(tdCount);
+    const tdAction = document.createElement("td");
+    const btn = document.createElement("button");
+    btn.textContent = "View";
+    btn.addEventListener("click", () => openAnswers(hospital, grouped[hospital]));
+    tdAction.appendChild(btn);
+    tr.appendChild(tdAction);
 
-      const tdAction = document.createElement("td");
-      const btn = document.createElement("button");
-      btn.textContent = "View";
-      btn.addEventListener("click", () => openAnswers(hospital, grouped[hospital] || []));
-      tdAction.appendChild(btn);
-      tr.appendChild(tdAction);
+    dashboardBody.appendChild(tr);
+  });
 
-      dashboardBody.appendChild(tr);
-    });
-
-    noDataMessage.style.display = feedbacks.length === 0 ? "block" : "none";
-
-  } catch(err) {
-    console.error("Error fetching feedbacks:", err);
-    dashboardBody.innerHTML = "<tr><td colspan='3'>Error loading feedbacks.</td></tr>";
-  }
+  noDataMessage.style.display = feedbacks.length === 0 ? "block" : "none";
 }
 
 // ===== Group feedbacks =====
@@ -240,12 +217,12 @@ function openAnswers(hospital, feedbacks){
       content.style.display = content.style.display === "none" ? "block" : "none";
     });
 
-    QUESTION_ORDER.forEach(q => {
-      const key = `${q.section}_q${q.q}`;
-      const answer = fb[key] || "No response";
-      const p = document.createElement("div");
-      p.textContent = `${q.text}: ${answer}`;
-      content.appendChild(p);
+    Object.entries(fb).forEach(([key, value]) => {
+      if(key.includes("_q")){
+        const p = document.createElement("div");
+        p.textContent = `${key}: ${value}`;
+        content.appendChild(p);
+      }
     });
 
     respDiv.appendChild(header);
@@ -256,4 +233,3 @@ function openAnswers(hospital, feedbacks){
 </script>
 </body>
 </html>
-
