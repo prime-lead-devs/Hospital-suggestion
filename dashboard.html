@@ -1,74 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Manager Dashboard</title>
-<style>
-body { font-family: Arial, sans-serif; margin:20px; background:#f8f9fa; color:#111; }
-h1 { color:#0a7b3f; text-align:center; }
-.card { background:#fff; padding:20px; border-radius:10px; max-width:1000px; margin:20px auto; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
-table { width:100%; border-collapse:collapse; margin-top:20px; }
-th, td { padding:10px; border:1px solid #ccc; text-align:left; }
-th { background:#eee; }
-button { padding:6px 10px; border:none; border-radius:5px; cursor:pointer; background:#0b5ed7; color:#fff; }
-#loginForm { max-width:400px; margin:50px auto; }
-input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px solid #ccc; }
-.logout { float:right; background:#d9534f; }
-.small { font-size:0.9rem; color:#666; }
-.answers-panel { margin-top:10px; }
-.response { border:1px solid #ccc; border-radius:5px; margin-bottom:10px; padding:10px; background:#f9f9f9; }
-.response-header { font-weight:bold; cursor:pointer; background:#e9ecef; padding:6px; border-radius:5px; }
-.response-content { display:none; margin-top:6px; }
-.meta { font-size:0.85rem; color:#666; margin-bottom:6px; }
-.back { margin-top:12px; background:#6c757d; }
-.empty { color:#666; padding:10px; }
-</style>
-</head>
-<body>
-
-<div id="loginContainer" class="card">
-  <h1>Manager Login</h1>
-  <form id="loginForm">
-    <label class="small" for="email">Email</label>
-    <input type="email" id="email" placeholder="Email" required>
-    <label class="small" for="password">Password</label>
-    <input type="password" id="password" placeholder="Password" required>
-    <button type="submit">Login</button>
-    <p id="loginError" style="color:red;"></p>
-  </form>
-</div>
-
-<div id="dashboardContainer" class="card" style="display:none;">
-  <h1>Manager Dashboard</h1>
-  <button id="logoutBtn" class="logout">Logout</button>
-  <table>
-    <thead>
-      <tr>
-        <th>Hospital Name</th>
-        <th>Total Feedbacks</th>
-        <th>Feedbacks (View)</th>
-      </tr>
-    </thead>
-    <tbody id="dashboardBody"></tbody>
-  </table>
-  <p id="noDataMessage" class="small" style="display:none;">No feedbacks found.</p>
-</div>
-
-<div id="answersContainer" class="card" style="display:none;">
-  <h1 id="answersTitle">Answers</h1>
-  <div id="answersList" class="answers-panel"></div>
-  <div style="text-align:right;">
-    <button id="backBtn" class="back">Back to Dashboard</button>
-  </div>
-</div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
 
-// ===== Firebase config =====
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDvVUrCLZj3Afu5MFqu5EhOGejyTfqEjgY",
   authDomain: "suggestion-box-4b869.firebaseapp.com",
@@ -83,7 +18,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ===== DOM elements =====
+// DOM elements
 const loginContainer = document.getElementById("loginContainer");
 const dashboardContainer = document.getElementById("dashboardContainer");
 const answersContainer = document.getElementById("answersContainer");
@@ -128,8 +63,7 @@ const QUESTION_ORDER = [
   { section: "E", q: 3, text: "How satisfied are you with employee benefits?" },
   { section: "F", q: 1, text: "How would you describe the teamwork in your department?" },
   { section: "F", q: 3, text: "Do you feel the company promotes fairness, respect, and equal opportunity?" },
-  { section: "F", q: 5, text: "How motivated do you feel coming to work each day?" },
-  // Add more questions from Section G and additional if needed
+  { section: "F", q: 5, text: "How motivated do you feel coming to work each day?" }
 ];
 
 // ===== Login =====
@@ -224,7 +158,7 @@ function openAnswers(hospital, feedbacks){
   answersTitle.textContent = "Answers — " + hospital;
   answersList.innerHTML = "";
 
-  if(!feedbacks || feedbacks.length === 0){
+  if(!feedbacks.length){
     const empty = document.createElement("div");
     empty.className = "empty";
     empty.textContent = "No answers yet for this hospital.";
@@ -239,13 +173,13 @@ function openAnswers(hospital, feedbacks){
     const header = document.createElement("div");
     header.className = "response-header";
     header.textContent = "Response #" + (index + 1);
-    header.addEventListener("click", () => {
-      content.style.display = content.style.display === "none" ? "block" : "none";
-    });
-    respDiv.appendChild(header);
 
     const content = document.createElement("div");
     content.className = "response-content";
+
+    header.addEventListener("click", () => {
+      content.style.display = content.style.display === "none" ? "block" : "none";
+    });
 
     QUESTION_ORDER.forEach(q => {
       const key = `${q.section} q${q.q}`;
@@ -255,11 +189,11 @@ function openAnswers(hospital, feedbacks){
       content.appendChild(p);
     });
 
+    respDiv.appendChild(header);
     respDiv.appendChild(content);
     answersList.appendChild(respDiv);
   });
 }
 </script>
-</body>
-</html>
+
 
