@@ -1,4 +1,4 @@
-    // main.js
+// main.js
 import { db } from "./firebase-config.js";
 import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
@@ -10,25 +10,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitBtn = document.getElementById("submitBtn");
   const honeypot = document.getElementById("website"); // spam trap
 
-  // Collect all form data including checkboxes
+  // Define checkbox groups if any
+  const checkboxGroups = []; // e.g., ["H_q1", "H_q2"]
+
   function collectPayload() {
     const fd = new FormData(form);
     const data = Object.fromEntries(fd.entries());
 
-    // Collect checkbox groups manually
-    const checkboxGroups = ["servicesUsed", "otherCheckboxGroup"]; // replace with your checkbox names
-    checkboxGroups.forEach((name) => {
-      const checked = Array.from(form.querySelectorAll(`input[name="${name}"]:checked`))
-                          .map(el => el.value);
-      data[name] = checked; // array of selected values
+    // Handle "Other" fields for radios
+    const otherRadios = form.querySelectorAll('input[type="radio"][name$="_other"]');
+    otherRadios.forEach(input => {
+      const mainName = input.name.replace("_other", "");
+      if (input.value && input.value.trim() !== "") {
+        data[mainName] = `${data[mainName]}: ${input.value}`;
+      }
     });
 
-    // Capture hospital name from select if not typed
-    if (!hospitalNameInput.value && hospitalSelect.selectedIndex > 0) {
-      data.hospitalName = hospitalSelect.options[hospitalSelect.selectedIndex].text;
-    } else {
-      data.hospitalName = hospitalNameInput.value || "";
-    }
+    // Handle checkbox groups
+    checkboxGroups.forEach(name => {
+      const checked = Array.from(form.querySelectorAll(`input[name="${name}"]:checked`)).map(el => el.value);
+      data[name] = checked; // store as array
+    });
 
     data.createdAt = serverTimestamp();
     return data;
@@ -39,31 +41,35 @@ document.addEventListener("DOMContentLoaded", () => {
     status.textContent = "";
     status.className = "status";
 
-    // Spam protection
+    // Prevent bots
     if (honeypot && honeypot.value.trim() !== "") {
       console.warn("Spam submission blocked");
       return;
     }
 
-    // Disable submit button
+    // Ensure hospital name matches selected option
+    if (!hospitalNameInput.value && hospitalSelect.selectedIndex > 0) {
+      hospitalNameInput.value = hospitalSelect.options[hospitalSelect.selectedIndex].text;
+    }
+
     submitBtn.disabled = true;
     submitBtn.textContent = "Submitting...";
 
     const payload = collectPayload();
 
     try {
-      await addDoc(collection(db, "quizResponses"), payload);
-      status.textContent = "✅ Quiz submitted successfully!";
+      await addDoc(collection(db, "feedbacks"), payload);
+      status.textContent = "✅ Feedback submitted successfully!";
       status.className = "status success";
       form.reset();
       hospitalNameInput.value = "";
     } catch (error) {
-      console.error("Error saving quiz:", error);
-      status.textContent = "❌ Failed to submit. Please try again.";
+      console.error("Error saving feedback:", error);
+      status.textContent = "❌ Failed to submit feedback. Please try again.";
       status.className = "status error";
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = "Submit Quiz";
+      submitBtn.textContent = "Submit Feedback";
     }
   });
 });
