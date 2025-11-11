@@ -20,8 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Flatten all form inputs
     for (let [key, value] of fd.entries()) {
       if (!value) continue;
-      const flatKey = key.replaceAll("_", " "); // replace all underscores
-      data[flatKey] = value;
+      data[key] = value; // ✅ keep underscores intact
     }
 
     // Handle "Other" radio inputs
@@ -29,8 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
     otherRadios.forEach(input => {
       const mainName = input.name.replace("_other", "");
       if (input.value && input.value.trim() !== "") {
-        const flatKey = mainName.replaceAll("_", " ") + " other";
-        data[flatKey] = input.value.trim();
+        data[mainName + "_other"] = input.value.trim();
       }
     });
 
@@ -76,3 +74,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
