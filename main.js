@@ -10,6 +10,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitBtn = document.getElementById("submitBtn");
   const honeypot = document.getElementById("website"); // spam trap
 
+  // QUESTION ORDER — must match dashboard exactly
+  const QUESTION_ORDER = [
+    { section: "A", q: 1 },
+    { section: "A", q: 3 },
+    { section: "B", q: 1 },
+    { section: "B", q: 3 },
+    { section: "B", q: 5 },
+    { section: "B", q: 7 },
+    { section: "B", q: 9 },
+    { section: "C", q: 1 },
+    { section: "C", q: 3 },
+    { section: "C", q: 5 },
+    { section: "C", q: 7 },
+    { section: "D", q: 1 },
+    { section: "D", q: 3 },
+    { section: "D", q: 5 },
+    { section: "D", q: 7 },
+    { section: "E", q: 1 },
+    { section: "E", q: 3 },
+    { section: "F", q: 1 },
+    { section: "F", q: 3 },
+    { section: "F", q: 5 },
+  ];
+
   function collectPayload() {
     const fd = new FormData(form);
     const data = {};
@@ -17,18 +41,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // Determine hospital
     const hospital = hospitalSelect.value || hospitalNameInput.value || "Unknown";
 
-    // Flatten all form inputs
-    for (let [key, value] of fd.entries()) {
-      if (!value) continue;
-      data[key] = value; // ✅ keep underscores intact
-    }
-
-    // Handle "Other" radio inputs
-    const otherRadios = form.querySelectorAll('input[type="radio"][name$="_other"]');
-    otherRadios.forEach(input => {
-      const mainName = input.name.replace("_other", "");
-      if (input.value && input.value.trim() !== "") {
-        data[mainName + "_other"] = input.value.trim();
+    // Flatten form inputs
+    QUESTION_ORDER.forEach(q => {
+      const key = `${q.section}_q${q.q}`;
+      const input = form.querySelector(`[name="${key}"]`);
+      if (input && input.value.trim() !== "") {
+        data[key] = input.value.trim();
       }
     });
 
@@ -48,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Spam trap
     if (honeypot && honeypot.value.trim() !== "") return;
 
-    // Fix hospital input
+    // Fix hospital input if select is used
     if (!hospitalNameInput.value && hospitalSelect.selectedIndex > 0) {
       hospitalNameInput.value = hospitalSelect.options[hospitalSelect.selectedIndex].text;
     }
