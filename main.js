@@ -10,60 +10,64 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitBtn = document.getElementById("submitBtn");
   const honeypot = document.getElementById("website"); // spam trap
 
-  // Optional checkbox groups
-  const checkboxGroups = []; // e.g., ["H_q1", "H_q2"]
+  // Map form inputs to section + question IDs
+  const QUESTION_ORDER = [
+    "A_q1", "A_q2", "A_q3", "A_q4",
+    "B_q1", "B_q2", "B_q3", "B_q4", "B_q5",
+    "C_q1", "C_q2", "C_q3", "C_q4",
+    "D_q1", "D_q2", "D_q3", "D_q4",
+    "E_q1", "E_q2", "E_q3", "E_q4",
+    "F_q1", "F_q2", "F_q3", "F_q4",
+    "G_q1", "G_q2", "G_q3"
+  ];
 
-  // Helper to collect form data
   function collectPayload() {
     const fd = new FormData(form);
-    const data = Object.fromEntries(fd.entries());
+    const data = { sections: {} };
 
-    // Handle "Other" radio inputs
+    // Determine hospital
+    const hospital = hospitalSelect.value || hospitalNameInput.value || "Unknown";
+
+    // Iterate through all form entries
+    for (let [key, value] of fd.entries()) {
+      if (!value) continue;
+
+      // Determine section
+      const match = key.match(/^([A-G])_q\d+/);
+      if (match) {
+        const section = match[1];
+        if (!data.sections[section]) data.sections[section] = {};
+        data.sections[section][key] = value;
+      } else {
+        data[key] = value; // for other fields (e.g., additional questions)
+      }
+    }
+
+    // Handle "Other" radios
     const otherRadios = form.querySelectorAll('input[type="radio"][name$="_other"]');
     otherRadios.forEach(input => {
       const mainName = input.name.replace("_other", "");
       if (input.value && input.value.trim() !== "") {
-        data[mainName] = `${data[mainName]}: ${input.value}`;
+        const section = mainName[0];
+        if (!data.sections[section]) data.sections[section] = {};
+        data.sections[section][mainName + "_other"] = input.value.trim();
       }
     });
 
-    // Handle checkbox groups
-    checkboxGroups.forEach(name => {
-      const checked = Array.from(form.querySelectorAll(`input[name="${name}"]:checked`)).map(el => el.value);
-      data[name] = checked; // store as array
-    });
-
-    // Add hospital name safely
-    const hospital = hospitalSelect.value || hospitalNameInput.value || "Unknown";
     data.hospitalName = hospital.trim();
-
-    // Add readable timestamp
-    const now = new Date();
-    data.createdAt = now.toLocaleString(); // e.g. "11/11/2025, 10:35 AM"
-    data.timestamp = serverTimestamp(); // still keep for sorting if needed
-
-    // Add author (anonymous for now)
-    data.author = "anonymous";
-
-    // Message field fallback
-    if (!data.message && data.feedback) data.message = data.feedback;
+    data.createdAt = serverTimestamp(); // Firestore timestamp
+    data.author = "anonymous"; // you can update later if needed
 
     return data;
   }
 
-  // Handle form submission
-  form.addEventListener("submit", async (e) => {
+  form.addEventListener("submit", async e => {
     e.preventDefault();
     status.textContent = "";
     status.className = "status";
 
-    // Prevent spam
-    if (honeypot && honeypot.value.trim() !== "") {
-      console.warn("Spam submission blocked");
-      return;
-    }
+    if (honeypot && honeypot.value.trim() !== "") return; // spam check
 
-    // Fix hospital input if not set
     if (!hospitalNameInput.value && hospitalSelect.selectedIndex > 0) {
       hospitalNameInput.value = hospitalSelect.options[hospitalSelect.selectedIndex].text;
     }
@@ -79,8 +83,8 @@ document.addEventListener("DOMContentLoaded", () => {
       status.className = "status success";
       form.reset();
       hospitalNameInput.value = "";
-    } catch (error) {
-      console.error("Error saving feedback:", error);
+    } catch (err) {
+      console.error("Error saving feedback:", err);
       status.textContent = "❌ Failed to submit feedback. Please try again.";
       status.className = "status error";
     } finally {
