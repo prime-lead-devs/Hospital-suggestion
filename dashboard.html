@@ -1,0 +1,163 @@
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
+
+  // ======= Firebase config =======
+  const firebaseConfig = {
+    apiKey: "AIzaSyDvVUrCLZj3Afu5MFqu5EhOGejyTfqEjgY",
+    authDomain: "suggestion-box-4b869.firebaseapp.com",
+    projectId: "suggestion-box-4b869",
+    storageBucket: "suggestion-box-4b869.firebasestorage.app",
+    messagingSenderId: "263926556991",
+    appId: "1:263926556991:web:8c1f585f1f42fb72664b8a",
+    measurementId: "G-RHHQJE2Y6B"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // ======= DOM elements =======
+  const loginContainer = document.getElementById("loginContainer");
+  const dashboardContainer = document.getElementById("dashboardContainer");
+  const answersContainer = document.getElementById("answersContainer");
+  const loginForm = document.getElementById("loginForm");
+  const loginError = document.getElementById("loginError");
+  const dashboardBody = document.getElementById("dashboardBody");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const noDataMessage = document.getElementById("noDataMessage");
+  const answersTitle = document.getElementById("answersTitle");
+  const answersList = document.getElementById("answersList");
+  const backBtn = document.getElementById("backBtn");
+
+  const HOSPITALS = [
+    "The Matuu Hospital",
+    "Reliable Healthcare Services Hospital",
+    "Ekalakala Nursing Home",
+    "Ultrakathiani Hospital",
+    "Ultrakathiani Hospital- Mitaboni",
+    "Namanga Nursing Home",
+    "Ginger Hospital",
+    "Kwa Vonza Cottage Hospital"
+  ];
+
+  // ======= Login =======
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    loginError.textContent = "";
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      loginForm.reset();
+    } catch (err) {
+      loginError.textContent = err.message;
+    }
+  });
+
+  // ======= Logout =======
+  logoutBtn.addEventListener("click", async () => {
+    await signOut(auth);
+  });
+
+  // ======= Back button =======
+  backBtn.addEventListener("click", () => {
+    answersContainer.style.display = "none";
+    dashboardContainer.style.display = "block";
+  });
+
+  // ======= Auth state listener =======
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      loginContainer.style.display = "none";
+      dashboardContainer.style.display = "block";
+      await populateDashboardFromFirebase();
+    } else {
+      loginContainer.style.display = "block";
+      dashboardContainer.style.display = "none";
+      answersContainer.style.display = "none";
+    }
+  });
+
+  // ======= Populate dashboard =======
+  async function populateDashboardFromFirebase() {
+    try {
+      const feedbackSnapshot = await getDocs(collection(db, "feedbacks"));
+      const feedbacks = feedbackSnapshot.docs.map(doc => doc.data());
+
+      const grouped = groupFeedbacks(feedbacks);
+      dashboardBody.innerHTML = "";
+
+      HOSPITALS.forEach(hospital => {
+        const tr = document.createElement("tr");
+
+        const tdName = document.createElement("td");
+        tdName.textContent = hospital;
+        tr.appendChild(tdName);
+
+        const tdCount = document.createElement("td");
+        tdCount.textContent = (grouped[hospital] || []).length;
+        tr.appendChild(tdCount);
+
+        const tdAction = document.createElement("td");
+        const btn = document.createElement("button");
+        btn.textContent = "View";
+        btn.addEventListener("click", () => openAnswersFor(hospital, grouped[hospital] || []));
+        tdAction.appendChild(btn);
+        tr.appendChild(tdAction);
+
+        dashboardBody.appendChild(tr);
+      });
+
+      noDataMessage.style.display = feedbacks.length === 0 ? "block" : "none";
+    } catch (err) {
+      console.error("Error fetching feedbacks:", err);
+      dashboardBody.innerHTML = "<tr><td colspan='3'>Error loading feedbacks.</td></tr>";
+    }
+  }
+
+  // ======= Group feedbacks by hospital =======
+  function groupFeedbacks(feedbacks) {
+    const grouped = {};
+    feedbacks.forEach(f => {
+      const name = (f.hospitalName || "Unknown").toString().trim();
+      if (!grouped[name]) grouped[name] = [];
+      grouped[name].push(f);
+    });
+    return grouped;
+  }
+
+  // ======= Open answers view =======
+  function openAnswersFor(hospital, feedbacks) {
+    dashboardContainer.style.display = "none";
+    answersContainer.style.display = "block";
+    answersTitle.textContent = "Answers — " + hospital;
+    answersList.innerHTML = "";
+
+    if (!feedbacks || feedbacks.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "No answers yet for this hospital.";
+      answersList.appendChild(empty);
+      return;
+    }
+
+    feedbacks.forEach(fb => {
+      const div = document.createElement("div");
+      div.className = "answer";
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = `${fb.createdAt || "n/a"} — ${fb.author || "anonymous"}`;
+      div.appendChild(meta);
+
+      const msg = document.createElement("div");
+      msg.textContent = fb.message || "(no message)";
+      div.appendChild(msg);
+
+      answersList.appendChild(div);
+    });
+  }
+</script>
