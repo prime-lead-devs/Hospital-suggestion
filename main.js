@@ -20,31 +20,42 @@ const db = getFirestore(app);
 // ====== DOM Elements ======
 const feedbackForm = document.getElementById("feedbackForm");
 const submitBtn = document.getElementById("submitBtn");
-const successMsg = document.getElementById("successMsg");
-const errorMsg = document.getElementById("errorMsg");
+const statusDiv = document.getElementById("status");
+
+const hospitalSelect = document.getElementById("hospital");
+const hospitalNameInput = document.getElementById("hospitalName");
+
+// ====== Populate hidden hospitalName field automatically ======
+hospitalSelect.addEventListener("change", () => {
+  const selectedOption = hospitalSelect.options[hospitalSelect.selectedIndex];
+  hospitalNameInput.value = selectedOption.text;
+});
 
 // ====== Handle Form Submit ======
 feedbackForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  successMsg.textContent = "";
-  errorMsg.textContent = "";
+
+  // Clear previous status
+  statusDiv.textContent = "";
+  statusDiv.classList.remove("success", "error");
+
   submitBtn.disabled = true;
   submitBtn.textContent = "Submitting...";
 
   try {
-    // Get hospital name
-    const hospitalName = document.getElementById("hospitalName").value.trim();
-
-    // Collect all questions by ID (A_q1, A_q3, etc.)
+    // Collect all input values
     const feedbackData = {
-      hospitalName,
+      hospitalName: hospitalNameInput.value.trim(),
       createdAt: serverTimestamp(),
     };
 
-    // Loop through all inputs with IDs like A_q1, B_q1, etc.
-    const inputs = feedbackForm.querySelectorAll("input[type='radio']:checked, select, textarea");
+    // Get all selected radio inputs, textareas, and selects
+    const inputs = feedbackForm.querySelectorAll(
+      "input[type='radio']:checked, select, textarea, input[type='text']:not(.honeypot)"
+    );
+
     inputs.forEach((el) => {
-      if (el.id && el.id.includes("_q")) {
+      if (el.id) {
         feedbackData[el.id] = el.value.trim();
       }
     });
@@ -52,11 +63,15 @@ feedbackForm.addEventListener("submit", async (e) => {
     // Add document to Firestore
     await addDoc(collection(db, "feedbacks"), feedbackData);
 
-    successMsg.textContent = "✅ Feedback submitted successfully!";
+    // Success message
+    statusDiv.textContent = "✅ Feedback submitted successfully!";
+    statusDiv.classList.add("success");
+
     feedbackForm.reset();
   } catch (err) {
     console.error("Error saving feedback:", err);
-    errorMsg.textContent = "❌ Failed to submit feedback. Please try again.";
+    statusDiv.textContent = "❌ Failed to submit feedback. Please try again.";
+    statusDiv.classList.add("error");
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = "Submit";
