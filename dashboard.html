@@ -3,100 +3,39 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Unshur Group Manager Dashboard</title>
+<title>Manager Dashboard</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    background: #f8f9fa;
-    color: #111;
-  }
-
-  h1, h2 {
-    text-align: center;
-    margin-bottom: 10px;
-  }
-
-  /* LOGIN STYLING */
-  #loginContainer {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    max-width: 400px;
-    margin: 0 auto;
-    background: #fff;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-  }
-
-  #loginContainer input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 12px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    font-size: 14px;
-  }
-
-  #loginContainer button {
-    width: 100%;
-    padding: 10px;
-    border-radius: 5px;
-    border: none;
-    background: #0b5ed7;
-    color: #fff;
-    font-size: 16px;
-    cursor: pointer;
-  }
-
-  #loginContainer button:hover {
-    background: #084298;
-  }
-
-  #loginError {
-    color: red;
-    margin-top: 8px;
-  }
-
-  /* DASHBOARD STYLING */
-  .card {
-    background:#fff;
-    padding:20px;
-    border-radius:10px;
-    max-width:1000px;
-    margin:20px auto;
-    box-shadow:0 6px 20px rgba(0,0,0,0.06);
-  }
-
-  table { width:100%; border-collapse:collapse; margin-top:20px; }
-  th, td { padding:10px; border:1px solid #ccc; text-align:left; }
-  th { background:#eee; }
-  button { padding:6px 10px; border:none; border-radius:5px; cursor:pointer; background:#0b5ed7; color:#fff; }
-  button:disabled { background:#ccc; cursor:not-allowed; }
-  .logout { float:right; background:#d9534f; }
-  .small { font-size:0.9rem; color:#666; }
-  .answers-panel { margin-top:10px; }
-  .response { border:1px solid #ccc; border-radius:5px; margin-bottom:10px; padding:10px; background:#f9f9f9; }
-  .response-header { font-weight:bold; cursor:pointer; background:#e9ecef; padding:6px; border-radius:5px; }
-  .response-content { display:none; margin-top:6px; }
-  .back { margin-top:12px; background:#6c757d; color:#fff; }
-  .empty { color:#666; padding:10px; }
+body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f8f9fa; color:#111; }
+h1 { text-align:center; color:#0a7b3f; }
+.card { background:#fff; padding:20px; border-radius:10px; max-width:1000px; margin:40px auto; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
+table { width:100%; border-collapse:collapse; margin-top:20px; }
+th, td { padding:10px; border:1px solid #ccc; text-align:left; }
+th { background:#eee; }
+button { padding:6px 10px; border:none; border-radius:5px; cursor:pointer; background:#0b5ed7; color:#fff; }
+button:disabled { background:#ccc; cursor:not-allowed; }
+.logout { float:right; }
+.small { font-size:0.9rem; color:#666; }
+.answers-panel { margin-top:10px; }
+.response { border:1px solid #ccc; border-radius:5px; margin-bottom:10px; padding:10px; background:#f9f9f9; }
+.response-header { font-weight:bold; cursor:pointer; background:#e9ecef; padding:6px; border-radius:5px; }
+.response-content { display:none; margin-top:6px; }
+.back { margin-top:12px; background:#6c757d; }
+.empty { color:#666; padding:10px; }
+input, select, textarea { width:100%; padding:8px; margin:6px 0; border-radius:5px; border:1px solid #ccc; }
 </style>
 </head>
 <body>
 
 <!-- LOGIN CARD -->
-<div id="loginContainer">
-  <h1>BRANDED MANAGER</h1>
-  <h2>Unshur Group</h2>
+<div id="loginContainer" class="card">
+  <h1>Manager Dashboard</h1>
   <form id="loginForm">
+    <label class="small" for="email">Email</label>
     <input type="email" id="email" placeholder="Email" required>
+    <label class="small" for="password">Password</label>
     <input type="password" id="password" placeholder="Password" required>
     <button type="submit">Login</button>
-    <p id="loginError"></p>
+    <p id="loginError" style="color:red;"></p>
   </form>
 </div>
 
@@ -127,16 +66,16 @@
 </div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, query, orderBy, Timestamp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
-/* ==================== CONFIG ==================== */
 const firebaseConfig = {
   apiKey: "AIzaSyDvVUrCLZj3Afu5MFqu5EhOGejyTfqEjgY",
   authDomain: "suggestion-box-4b869.firebaseapp.com",
   projectId: "suggestion-box-4b869",
-  storageBucket: "suggestion-box-4b869.appspot.com",
+  storageBucket: "suggestion-box-4b869.firebasestorage.app",
   messagingSenderId: "263926556991",
   appId: "1:263926556991:web:8c1f585f1f42fb72664b8a",
   measurementId: "G-RHHQJE2Y6B"
@@ -146,7 +85,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ==================== DOM ELEMENTS ==================== */
 const loginContainer = document.getElementById("loginContainer");
 const dashboardContainer = document.getElementById("dashboardContainer");
 const answersContainer = document.getElementById("answersContainer");
@@ -159,7 +97,6 @@ const answersTitle = document.getElementById("answersTitle");
 const answersList = document.getElementById("answersList");
 const backBtn = document.getElementById("backBtn");
 
-/* ==================== HOSPITALS LIST ==================== */
 const ALL_HOSPITALS = [
   "The Matuu Hospital",
   "Reliable Healthcare Services Hospital",
@@ -171,13 +108,11 @@ const ALL_HOSPITALS = [
   "Kwa Vonza Cottage Hospital"
 ];
 
-/* ==================== LOGIN ==================== */
 loginForm.addEventListener("submit", async e => {
   e.preventDefault();
   loginError.textContent = "";
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
-
   try {
     await signInWithEmailAndPassword(auth, email, password);
     loginForm.reset();
@@ -186,57 +121,48 @@ loginForm.addEventListener("submit", async e => {
   }
 });
 
-/* ==================== LOGOUT ==================== */
 logoutBtn.addEventListener("click", async () => {
   await signOut(auth);
 });
 
-/* ==================== BACK BUTTON ==================== */
 backBtn.addEventListener("click", () => {
   answersContainer.style.display = "none";
   dashboardContainer.style.display = "block";
 });
 
-/* ==================== PREVENT DUPLICATE LISTENER ==================== */
 let feedbackListenerStarted = false;
 
-/* ==================== AUTH LISTENER ==================== */
 onAuthStateChanged(auth, user => {
-  if (user) {
+  if(user){
     loginContainer.style.display = "none";
     dashboardContainer.style.display = "block";
-    answersContainer.style.display = "none";
-
-    if (!feedbackListenerStarted) {
+    if(!feedbackListenerStarted){
       listenToFeedbacks();
       feedbackListenerStarted = true;
     }
-
   } else {
-    loginContainer.style.display = "flex";
+    loginContainer.style.display = "block";
     dashboardContainer.style.display = "none";
     answersContainer.style.display = "none";
   }
 });
 
-/* ==================== FEEDBACK LISTENER ==================== */
-function listenToFeedbacks() {
+function listenToFeedbacks(){
   const q = query(collection(db, "hospitalFeedback"), orderBy("timestamp", "desc"));
   onSnapshot(q, snapshot => {
-    const feedbacks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const feedbacks = snapshot.docs.map(doc => doc.data());
     populateDashboard(feedbacks);
   });
 }
 
-/* ==================== POPULATE DASHBOARD ==================== */
-function populateDashboard(feedbacks) {
+function populateDashboard(feedbacks){
   const grouped = {};
   feedbacks.forEach(f => {
-    const rawName = f.hospital || f.hospitalName;
-    if (!rawName) return;
-    const normName = rawName.trim().toLowerCase();
-    if (!grouped[normName]) grouped[normName] = [];
-    grouped[normName].push(f);
+    const rawName = f.hospitalName || f.hospital;
+    if(!rawName) return;
+    const nameNorm = rawName.trim().toLowerCase();
+    if(!grouped[nameNorm]) grouped[nameNorm] = [];
+    grouped[nameNorm].push(f);
   });
 
   dashboardBody.innerHTML = "";
@@ -246,13 +172,8 @@ function populateDashboard(feedbacks) {
     const feedbackList = grouped[normName] || [];
 
     const tr = document.createElement("tr");
-    const tdName = document.createElement("td");
-    tdName.textContent = realName;
-    tr.appendChild(tdName);
-
-    const tdCount = document.createElement("td");
-    tdCount.textContent = feedbackList.length;
-    tr.appendChild(tdCount);
+    const tdName = document.createElement("td"); tdName.textContent = realName; tr.appendChild(tdName);
+    const tdCount = document.createElement("td"); tdCount.textContent = feedbackList.length; tr.appendChild(tdCount);
 
     const tdAction = document.createElement("td");
     const btn = document.createElement("button");
@@ -268,50 +189,47 @@ function populateDashboard(feedbacks) {
   noDataMessage.style.display = feedbacks.length === 0 ? "block" : "none";
 }
 
-/* ==================== OPEN FEEDBACK ANSWERS ==================== */
-const QUESTION_ORDER = [
-  "workDuration","employmentStatus","employmentOther",
-  "workEnvironment","resourcesAvailable","deptCommunication","interDeptCommunication","feedbackValued",
-  "supervisorApproach","managementCommunication","managementSupport","leadershipRating",
-  "roleSatisfaction","workloadReasonable","skillsUtilized","careerOpportunities",
-  "compensation","benefits",
-  "teamwork","fairness","motivation",
-  "likes","improvements","suggestions",
-  "signedContract","jobDescription","kpi","additionalServices"
-];
-
-function openAnswers(hospital, feedbacks) {
+function openAnswers(hospital, feedbacks){
   dashboardContainer.style.display = "none";
   answersContainer.style.display = "block";
   answersTitle.textContent = "Answers — " + hospital;
   answersList.innerHTML = "";
 
-  if (!feedbacks || feedbacks.length === 0){
+  if(!feedbacks || feedbacks.length===0){
     const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "No answers yet for this hospital.";
+    empty.className="empty";
+    empty.textContent="No answers yet for this hospital.";
     answersList.appendChild(empty);
     return;
   }
 
-  feedbacks.forEach((fb, index) => {
+  const fieldsOrder = [
+    "workDuration","employmentStatus","employmentOther","workEnvironment",
+    "resourcesAvailable","deptCommunication","interDeptCommunication","feedbackValued",
+    "supervisorApproach","managementCommunication","managementSupport","leadershipRating",
+    "roleSatisfaction","workloadReasonable","skillsUtilized","careerOpportunities",
+    "compensation","benefits","teamwork","fairness","motivation",
+    "likes","improvements","suggestions","signedContract","jobDescription","kpi","additionalServices"
+  ];
+
+  feedbacks.forEach((fb,index)=>{
     const respDiv = document.createElement("div");
-    respDiv.className = "response";
+    respDiv.className="response";
 
     const header = document.createElement("div");
-    header.className = "response-header";
-    header.textContent = "Response #" + (index + 1);
-    header.addEventListener("click", () => {
-      content.style.display = content.style.display === "none" ? "block" : "none";
+    header.className="response-header";
+    header.textContent="Response #" + (index+1);
+    const content = document.createElement("div");
+    content.className="response-content";
+
+    header.addEventListener("click",()=>{ 
+      content.style.display = content.style.display==="none"?"block":"none";
     });
 
-    const content = document.createElement("div");
-    content.className = "response-content";
-
-    QUESTION_ORDER.forEach(key => {
-      if (!(key in fb)) return;
+    fieldsOrder.forEach(key=>{
+      const val = fb[key];
       const p = document.createElement("div");
-      p.textContent = `${key}: ${fb[key] || "No response"}`;
+      p.textContent=`${key}: ${val || "No response"}`;
       content.appendChild(p);
     });
 
@@ -320,7 +238,7 @@ function openAnswers(hospital, feedbacks) {
     answersList.appendChild(respDiv);
   });
 }
+
 </script>
 </body>
 </html>
-
