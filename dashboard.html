@@ -13,8 +13,6 @@ th, td { padding:10px; border:1px solid #ccc; text-align:left; }
 th { background:#eee; }
 button { padding:6px 10px; border:none; border-radius:5px; cursor:pointer; background:#0b5ed7; color:#fff; }
 button:disabled { background:#ccc; cursor:not-allowed; }
-#loginForm { max-width:400px; margin:50px auto; }
-input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px solid #ccc; }
 .logout { float:right; background:#d9534f; }
 .small { font-size:0.9rem; color:#666; }
 .answers-panel { margin-top:10px; }
@@ -24,11 +22,11 @@ input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px so
 .meta { font-size:0.85rem; color:#666; margin-bottom:6px; }
 .back { margin-top:12px; background:#6c757d; }
 .empty { color:#666; padding:10px; }
-.extra-field { font-style:italic; color:#444; margin-top:6px; }
 </style>
 </head>
 <body>
 
+<!-- LOGIN CARD -->
 <div id="loginContainer" class="card">
   <h1>Manager Login</h1>
   <form id="loginForm">
@@ -41,6 +39,7 @@ input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px so
   </form>
 </div>
 
+<!-- DASHBOARD CARD -->
 <div id="dashboardContainer" class="card" style="display:none;">
   <h1>Manager Dashboard</h1>
   <button id="logoutBtn" class="logout">Logout</button>
@@ -57,6 +56,7 @@ input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px so
   <p id="noDataMessage" class="small" style="display:none;">No feedbacks found.</p>
 </div>
 
+<!-- ANSWERS CARD -->
 <div id="answersContainer" class="card" style="display:none;">
   <h1 id="answersTitle">Answers</h1>
   <div id="answersList" class="answers-panel"></div>
@@ -66,6 +66,8 @@ input { width:100%; padding:10px; margin:6px 0; border-radius:5px; border:1px so
 </div>
 
 <script type="module">
+
+/* ==================== FIREBASE IMPORTS ==================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
 import { 
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut 
@@ -74,7 +76,7 @@ import {
   getFirestore, collection, onSnapshot, query, orderBy 
 } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
-// ===== Firebase config =====
+/* ==================== CONFIG ==================== */
 const firebaseConfig = {
   apiKey: "AIzaSyDvVUrCLZj3Afu5MFqu5EhOGejyTfqEjgY",
   authDomain: "suggestion-box-4b869.firebaseapp.com",
@@ -89,7 +91,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ===== DOM elements =====
+/* ==================== DOM ELEMENTS ==================== */
 const loginContainer = document.getElementById("loginContainer");
 const dashboardContainer = document.getElementById("dashboardContainer");
 const answersContainer = document.getElementById("answersContainer");
@@ -102,7 +104,7 @@ const answersTitle = document.getElementById("answersTitle");
 const answersList = document.getElementById("answersList");
 const backBtn = document.getElementById("backBtn");
 
-// ===== All hospitals =====
+/* ==================== HOSPITALS LIST ==================== */
 const ALL_HOSPITALS = [
   "The Matuu Hospital",
   "Reliable Healthcare Services Hospital",
@@ -114,70 +116,46 @@ const ALL_HOSPITALS = [
   "Kwa Vonza Cottage Hospital"
 ];
 
-// ===== Question order (keys must match what the form writes) =====
-const QUESTION_ORDER = [
-  { key: "A_q1", text: "How long have you worked with the company?" },
-  { key: "A_q3", text: "What is your employment status?" },
-  { key: "B_q1", text: "How would you rate your general work environment?" },
-  { key: "B_q3", text: "Do you feel you have the tools and resources needed?" },
-  { key: "B_q5", text: "How would you rate communication within your department?" },
-  { key: "B_q7", text: "How would you rate communication between departments?" },
-  { key: "B_q9", text: "Do you feel your ideas and feedback are valued by management?" },
-  { key: "C_q1", text: "How approachable is your immediate supervisor/manager?" },
-  { key: "C_q3", text: "How well does management communicate goals and expectations?" },
-  { key: "C_q5", text: "Do you feel supported by management in your work and professional growth?" },
-  { key: "C_q7", text: "How would you rate the overall leadership of the company?" },
-  { key: "D_q1", text: "How satisfied are you with your current role?" },
-  { key: "D_q3", text: "Do you believe your workload is reasonable?" },
-  { key: "D_q5", text: "Are your skills and talents being fully utilized in your current position?" },
-  { key: "D_q7", text: "Do you see opportunities for career growth and advancement?" },
-  { key: "E_q1", text: "How satisfied are you with your compensation?" },
-  { key: "E_q3", text: "How satisfied are you with employee benefits?" },
-  { key: "F_q1", text: "How would you describe the teamwork in your department?" },
-  { key: "F_q3", text: "Do you feel the company promotes fairness, respect, and equal opportunity?" },
-  { key: "F_q5", text: "How motivated do you feel coming to work each day?" }
-];
-
-// ===== Login handler =====
+/* ==================== LOGIN ==================== */
 loginForm.addEventListener("submit", async e => {
   e.preventDefault();
   loginError.textContent = "";
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
+
   try {
     await signInWithEmailAndPassword(auth, email, password);
     loginForm.reset();
   } catch(err) {
-    console.error("Login error:", err);
-    loginError.textContent = err.message || "Login failed";
+    loginError.textContent = "Invalid credentials";
   }
 });
 
-// ===== Logout handler =====
+/* ==================== LOGOUT ==================== */
 logoutBtn.addEventListener("click", async () => {
-  if (feedbackUnsubscribe) feedbackUnsubscribe(); // stop listener on logout
   await signOut(auth);
 });
 
-// ===== Back =====
+/* ==================== BACK BUTTON ==================== */
 backBtn.addEventListener("click", () => {
   answersContainer.style.display = "none";
   dashboardContainer.style.display = "block";
 });
 
-// ===== Auth + single listener protection =====
+/* ==================== PREVENT LISTENER DUPLICATION ==================== */
 let feedbackListenerStarted = false;
-let feedbackUnsubscribe = null;
 
-onAuthStateChanged(auth, async user => {
+/* ==================== AUTH LISTENER ==================== */
+onAuthStateChanged(auth, user => {
   if (user) {
     loginContainer.style.display = "none";
     dashboardContainer.style.display = "block";
 
     if (!feedbackListenerStarted) {
-      feedbackListenerStarted = true;
       listenToFeedbacks();
+      feedbackListenerStarted = true;
     }
+
   } else {
     loginContainer.style.display = "block";
     dashboardContainer.style.display = "none";
@@ -185,60 +163,50 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// ===== Firestore realtime listener (only once) =====
-function listenToFeedbacks() {
+/* ==================== REALTIME FEEDBACK LISTENER ==================== */
+function listenToFeedbacks(){
   const q = query(collection(db, "feedbacks"), orderBy("createdAt", "desc"));
-  feedbackUnsubscribe = onSnapshot(q, snapshot => {
-    const feedbacks = snapshot.docs.map(doc => {
-      const data = doc.data();
-      // attach id for debugging if needed
-      return { ...data, __id: doc.id };
-    });
+
+  onSnapshot(q, snapshot => {
+    const feedbacks = snapshot.docs.map(doc => doc.data());
     populateDashboard(feedbacks);
-  }, err => {
-    console.error("onSnapshot error:", err);
   });
 }
 
-// ===== Populate dashboard =====
-function normalizeName(name){
-  if(!name) return "";
-  return name.trim().toLowerCase();
-}
-
+/* ==================== POPULATE DASHBOARD ==================== */
 function populateDashboard(feedbacks){
   const grouped = {};
 
   feedbacks.forEach(f => {
-    // prefer hospitalName, fallback to hospital slug field
-    const rawName = f.hospitalName || f.hospital || "";
-    if(!rawName) return;
-    const nameNorm = normalizeName(rawName);
-    if(!grouped[nameNorm]) grouped[nameNorm] = [];
+    const rawName = f.hospitalName || f.hospital;
+    if (!rawName) return;
+
+    const nameNorm = rawName.trim().toLowerCase();
+    if (!grouped[nameNorm]) grouped[nameNorm] = [];
     grouped[nameNorm].push(f);
   });
 
   dashboardBody.innerHTML = "";
 
-  ALL_HOSPITALS.forEach(displayName => {
-    const normName = normalizeName(displayName);
-    const list = grouped[normName] || [];
+  ALL_HOSPITALS.forEach(realName => {
+    const normName = realName.trim().toLowerCase();
+    const feedbackList = grouped[normName] || [];
 
     const tr = document.createElement("tr");
 
     const tdName = document.createElement("td");
-    tdName.textContent = displayName;
+    tdName.textContent = realName;
     tr.appendChild(tdName);
 
     const tdCount = document.createElement("td");
-    tdCount.textContent = list.length;
+    tdCount.textContent = feedbackList.length;
     tr.appendChild(tdCount);
 
     const tdAction = document.createElement("td");
     const btn = document.createElement("button");
     btn.textContent = "View";
-    btn.disabled = list.length === 0;
-    btn.addEventListener("click", () => openAnswers(displayName, list));
+    btn.disabled = feedbackList.length === 0;
+    btn.addEventListener("click", () => openAnswers(realName, feedbackList));
     tdAction.appendChild(btn);
     tr.appendChild(tdAction);
 
@@ -248,14 +216,14 @@ function populateDashboard(feedbacks){
   noDataMessage.style.display = feedbacks.length === 0 ? "block" : "none";
 }
 
-// ===== Show answers (preserve original layout) =====
+/* ==================== SHOW FEEDBACK ANSWERS ==================== */
 function openAnswers(hospital, feedbacks){
   dashboardContainer.style.display = "none";
   answersContainer.style.display = "block";
   answersTitle.textContent = "Answers — " + hospital;
   answersList.innerHTML = "";
 
-  if(!feedbacks || feedbacks.length === 0){
+  if (!feedbacks || feedbacks.length === 0){
     const empty = document.createElement("div");
     empty.className = "empty";
     empty.textContent = "No answers yet for this hospital.";
@@ -277,51 +245,20 @@ function openAnswers(hospital, feedbacks){
       content.style.display = content.style.display === "none" ? "block" : "none";
     });
 
-    // Show ordered questions (use keys from QUESTION_ORDER)
-    QUESTION_ORDER.forEach(q => {
-      const answerRaw = fb[q.key];
-      // treat empty string or undefined as "No response"
-      const answer = (typeof answerRaw === "string" && answerRaw.trim() === "") || answerRaw === undefined
-        ? "No response"
-        : answerRaw;
+    Object.entries(fb).forEach(([key, val]) => {
+      if (key === "createdAt" || key === "hospital" || key === "hospitalName") return;
+
       const p = document.createElement("div");
-      p.textContent = `${q.text}: ${answer}`;
+      p.textContent = `${key}: ${val || "No response"}`;
       content.appendChild(p);
     });
-
-    // Show any extra fields saved in the document that are not in QUESTION_ORDER
-    // We show fields that look like question keys (e.g., "A_q2_other", "G_q1", "X_q4")
-    const knownKeys = new Set(QUESTION_ORDER.map(q => q.key).concat(["hospital","hospitalName","createdAt","__id"]));
-    const extraKeys = Object.keys(fb).filter(k => !knownKeys.has(k)).sort();
-
-    if(extraKeys.length > 0){
-      const hr = document.createElement("div");
-      hr.className = "meta";
-      hr.textContent = "Other fields saved:";
-      content.appendChild(hr);
-
-      extraKeys.forEach(k => {
-        // show even empty string so you can see it's empty
-        const v = fb[k] === "" ? "(empty string)" : (fb[k] === undefined ? "(undefined)" : fb[k]);
-        const d = document.createElement("div");
-        d.className = "extra-field";
-        d.textContent = `${k}: ${v}`;
-        content.appendChild(d);
-      });
-    }
-
-    // metadata (hospitalName, createdAt)
-    const meta = document.createElement("div");
-    meta.className = "meta";
-    const created = fb.createdAt && fb.createdAt.toDate ? fb.createdAt.toDate().toLocaleString() : (fb.createdAt ? String(fb.createdAt) : "unknown");
-    meta.textContent = `Hospital: ${fb.hospitalName || fb.hospital || "unknown"} • Submitted: ${created}`;
-    content.appendChild(meta);
 
     respDiv.appendChild(header);
     respDiv.appendChild(content);
     answersList.appendChild(respDiv);
   });
 }
+
 </script>
 </body>
 </html>
