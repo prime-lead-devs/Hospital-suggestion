@@ -1,73 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Manager Dashboard</title>
-<style>
-body { font-family: Arial, sans-serif; margin:20px; background:#f8f9fa; color:#111; }
-h1 { color:#0a7b3f; text-align:center; }
-.card { background:#fff; padding:20px; border-radius:10px; max-width:1000px; margin:20px auto; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
-table { width:100%; border-collapse:collapse; margin-top:20px; }
-th, td { padding:10px; border:1px solid #ccc; text-align:left; }
-th { background:#eee; }
-button { padding:6px 10px; border:none; border-radius:5px; cursor:pointer; background:#0b5ed7; color:#fff; }
-button:disabled { background:#ccc; cursor:not-allowed; }
-.logout { float:right; background:#d9534f; }
-.small { font-size:0.9rem; color:#666; }
-.answers-panel { margin-top:10px; }
-.response { border:1px solid #ccc; border-radius:5px; margin-bottom:10px; padding:10px; background:#f9f9f9; }
-.response-header { font-weight:bold; cursor:pointer; background:#e9ecef; padding:6px; border-radius:5px; }
-.response-content { display:none; margin-top:6px; }
-.meta { font-size:0.85rem; color:#666; margin-bottom:6px; }
-.back { margin-top:12px; background:#6c757d; }
-.empty { color:#666; padding:10px; }
-</style>
-</head>
-<body>
-
-<!-- LOGIN CARD -->
-<div id="loginContainer" class="card">
-  <h1>Manager Login</h1>
-  <form id="loginForm">
-    <label class="small" for="email">Email</label>
-    <input type="email" id="email" placeholder="Email" required>
-    <label class="small" for="password">Password</label>
-    <input type="password" id="password" placeholder="Password" required>
-    <button type="submit">Login</button>
-    <p id="loginError" style="color:red;"></p>
-  </form>
-</div>
-
-<!-- DASHBOARD CARD -->
-<div id="dashboardContainer" class="card" style="display:none;">
-  <h1>Manager Dashboard</h1>
-  <button id="logoutBtn" class="logout">Logout</button>
-  <table>
-    <thead>
-      <tr>
-        <th>Hospital Name</th>
-        <th>Total Feedbacks</th>
-        <th>Feedbacks (View)</th>
-      </tr>
-    </thead>
-    <tbody id="dashboardBody"></tbody>
-  </table>
-  <p id="noDataMessage" class="small" style="display:none;">No feedbacks found.</p>
-</div>
-
-<!-- ANSWERS CARD -->
-<div id="answersContainer" class="card" style="display:none;">
-  <h1 id="answersTitle">Answers</h1>
-  <div id="answersList" class="answers-panel"></div>
-  <div style="text-align:right;">
-    <button id="backBtn" class="back">Back to Dashboard</button>
-  </div>
-</div>
-
 <script type="module">
 
-/* ==================== FIREBASE IMPORTS ==================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
 import { 
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut 
@@ -76,7 +8,6 @@ import {
   getFirestore, collection, onSnapshot, query, orderBy 
 } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
-/* ==================== CONFIG ==================== */
 const firebaseConfig = {
   apiKey: "AIzaSyDvVUrCLZj3Afu5MFqu5EhOGejyTfqEjgY",
   authDomain: "suggestion-box-4b869.firebaseapp.com",
@@ -91,7 +22,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ==================== DOM ELEMENTS ==================== */
 const loginContainer = document.getElementById("loginContainer");
 const dashboardContainer = document.getElementById("dashboardContainer");
 const answersContainer = document.getElementById("answersContainer");
@@ -104,13 +34,12 @@ const answersTitle = document.getElementById("answersTitle");
 const answersList = document.getElementById("answersList");
 const backBtn = document.getElementById("backBtn");
 
-/* ==================== HOSPITALS LIST ==================== */
 const ALL_HOSPITALS = [
   "The Matuu Hospital",
   "Reliable Healthcare Services Hospital",
   "Ekalakala Nursing Home",
   "Ultrakathiani Hospital",
-  "Ultrakathiani Hospital - Mitaboni",
+  "Ultrakathiani Hospital- Mitaboni",
   "Namanga Nursing Home",
   "Ginger Hospital",
   "Kwa Vonza Cottage Hospital"
@@ -122,19 +51,12 @@ loginForm.addEventListener("submit", async e => {
   loginError.textContent = "";
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
-
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-    loginForm.reset();
-  } catch(err) {
-    loginError.textContent = "Invalid credentials";
-  }
+  try { await signInWithEmailAndPassword(auth, email, password); loginForm.reset(); }
+  catch(err){ loginError.textContent = "Invalid credentials"; }
 });
 
 /* ==================== LOGOUT ==================== */
-logoutBtn.addEventListener("click", async () => {
-  await signOut(auth);
-});
+logoutBtn.addEventListener("click", async () => await signOut(auth));
 
 /* ==================== BACK BUTTON ==================== */
 backBtn.addEventListener("click", () => {
@@ -142,20 +64,16 @@ backBtn.addEventListener("click", () => {
   dashboardContainer.style.display = "block";
 });
 
-/* ==================== PREVENT DUPLICATION ==================== */
 let feedbackListenerStarted = false;
 
-/* ==================== AUTH LISTENER ==================== */
 onAuthStateChanged(auth, user => {
   if (user) {
     loginContainer.style.display = "none";
     dashboardContainer.style.display = "block";
-
     if (!feedbackListenerStarted) {
       listenToFeedbacks();
       feedbackListenerStarted = true;
     }
-
   } else {
     loginContainer.style.display = "block";
     dashboardContainer.style.display = "none";
@@ -163,9 +81,9 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-/* ==================== FEEDBACK LISTENER ==================== */
+/* ==================== REALTIME FEEDBACK LISTENER ==================== */
 function listenToFeedbacks(){
-  const q = query(collection(db, "hospitalFeedback"), orderBy("timestamp", "desc"));
+  const q = query(collection(db, "hospitalFeedback"), orderBy("timestamp", "desc")); // FIXED COLLECTION & FIELD
 
   onSnapshot(q, snapshot => {
     const feedbacks = snapshot.docs.map(doc => doc.data());
@@ -173,14 +91,12 @@ function listenToFeedbacks(){
   });
 }
 
-/* ==================== DASHBOARD POPULATION ==================== */
+/* ==================== POPULATE DASHBOARD ==================== */
 function populateDashboard(feedbacks){
   const grouped = {};
-
   feedbacks.forEach(f => {
-    const rawName = f.hospital || f.hospitalName;
+    const rawName = f.hospital || f.hospitalName || "";
     if (!rawName) return;
-
     const nameNorm = rawName.trim().toLowerCase();
     if (!grouped[nameNorm]) grouped[nameNorm] = [];
     grouped[nameNorm].push(f);
@@ -193,14 +109,9 @@ function populateDashboard(feedbacks){
     const feedbackList = grouped[normName] || [];
 
     const tr = document.createElement("tr");
+    const tdName = document.createElement("td"); tdName.textContent = realName; tr.appendChild(tdName);
 
-    const tdName = document.createElement("td");
-    tdName.textContent = realName;
-    tr.appendChild(tdName);
-
-    const tdCount = document.createElement("td");
-    tdCount.textContent = feedbackList.length;
-    tr.appendChild(tdCount);
+    const tdCount = document.createElement("td"); tdCount.textContent = feedbackList.length; tr.appendChild(tdCount);
 
     const tdAction = document.createElement("td");
     const btn = document.createElement("button");
@@ -217,48 +128,6 @@ function populateDashboard(feedbacks){
 }
 
 /* ==================== SHOW FEEDBACK ANSWERS ==================== */
-const QUESTION_ORDER = [
-  "workDuration","employmentStatus","employmentOther",
-  "workEnvironment","resourcesAvailable","deptCommunication","interDeptCommunication","feedbackValued",
-  "supervisorApproach","managementCommunication","managementSupport","leadershipRating",
-  "roleSatisfaction","workloadReasonable","skillsUtilized","careerOpportunities",
-  "compensation","benefits",
-  "teamwork","fairness","motivation",
-  "likes","improvements","suggestions",
-  "signedContract","jobDescription","kpi","additionalServices"
-];
-
-const QUESTION_LABELS = {
-  workDuration:"How long have you worked with the company?",
-  employmentStatus:"Employment status",
-  employmentOther:"Other employment info",
-  workEnvironment:"Work environment rating",
-  resourcesAvailable:"Resources available?",
-  deptCommunication:"Dept communication rating",
-  interDeptCommunication:"Inter-dept communication rating",
-  feedbackValued:"Are ideas/feedback valued?",
-  supervisorApproach:"Supervisor approachability",
-  managementCommunication:"Management communication",
-  managementSupport:"Supported by management?",
-  leadershipRating:"Leadership rating",
-  roleSatisfaction:"Role satisfaction",
-  workloadReasonable:"Workload reasonable?",
-  skillsUtilized:"Skills utilized fully?",
-  careerOpportunities:"Career growth opportunities?",
-  compensation:"Compensation satisfaction",
-  benefits:"Benefits satisfaction",
-  teamwork:"Teamwork description",
-  fairness:"Fairness & equality?",
-  motivation:"Motivation level",
-  likes:"What do you like most?",
-  improvements:"Areas needing improvement",
-  suggestions:"Suggestions to management",
-  signedContract:"Signed contract?",
-  jobDescription:"Clear job description?",
-  kpi:"KPI clarity?",
-  additionalServices:"Additional services suggested"
-};
-
 function openAnswers(hospital, feedbacks){
   dashboardContainer.style.display = "none";
   answersContainer.style.display = "block";
@@ -280,6 +149,7 @@ function openAnswers(hospital, feedbacks){
     const header = document.createElement("div");
     header.className = "response-header";
     header.textContent = "Response #" + (index + 1);
+
     const content = document.createElement("div");
     content.className = "response-content";
 
@@ -287,10 +157,21 @@ function openAnswers(hospital, feedbacks){
       content.style.display = content.style.display === "none" ? "block" : "none";
     });
 
-    QUESTION_ORDER.forEach(q => {
+    // Order of questions exactly like in HTML
+    const QUESTION_KEYS = [
+      "workDuration","employmentStatus","employmentOther",
+      "workEnvironment","resourcesAvailable","deptCommunication","interDeptCommunication","feedbackValued",
+      "supervisorApproach","managementCommunication","managementSupport","leadershipRating",
+      "roleSatisfaction","workloadReasonable","skillsUtilized","careerOpportunities",
+      "compensation","benefits","teamwork","fairness","motivation",
+      "likes","improvements","suggestions",
+      "signedContract","jobDescription","kpi","additionalServices"
+    ];
+
+    QUESTION_KEYS.forEach(key => {
+      const val = fb[key] || "No response";
       const p = document.createElement("div");
-      const label = QUESTION_LABELS[q] || q;
-      p.textContent = `${label}: ${fb[q] || "No response"}`;
+      p.textContent = `${key}: ${val}`;
       content.appendChild(p);
     });
 
@@ -301,5 +182,3 @@ function openAnswers(hospital, feedbacks){
 }
 
 </script>
-</body>
-</html>
