@@ -1,13 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unshur Group Manager Dashboard</title>
+<style>
+  body { font-family: Arial, sans-serif; margin:0; background:#f0f2f5; color:#111; }
+  h1, h2 { text-align:center; color:#0a7b3f; margin:0 0 15px 0; }
+  .card { background:#fff; padding:25px 30px; border-radius:12px; max-width:900px; margin:40px auto; box-shadow:0 8px 25px rgba(0,0,0,0.1); }
+  input, select, button { font-size:14px; padding:8px; border-radius:6px; border:1px solid #ccc; width:100%; margin-bottom:12px; }
+  button { background:#0b5ed7; color:#fff; border:none; cursor:pointer; transition:0.3s; }
+  button:hover { background:#084298; }
+  .logout { float:right; background:#d9534f; }
+  .small { font-size:0.9rem; color:#666; }
+  table { width:100%; border-collapse:collapse; margin-top:20px; }
+  th, td { padding:10px; border:1px solid #ccc; text-align:left; }
+  th { background:#eee; }
+  .answers-panel { margin-top:10px; }
+  .response { border:1px solid #ccc; border-radius:6px; margin-bottom:10px; padding:10px; background:#f9f9f9; }
+  .response-header { font-weight:bold; cursor:pointer; background:#e9ecef; padding:6px; border-radius:5px; }
+  .response-content { display:none; margin-top:6px; }
+  .back { margin-top:12px; background:#6c757d; width:auto; padding:8px 15px; }
+  .empty { color:#666; padding:10px; }
+  #loginContainer { text-align:center; max-width:400px; margin:60px auto; }
+  #loginContainer input { width:100%; }
+  #loginContainer button { width:100%; margin-top:10px; }
+  #loginContainer h1 { font-size:1.8rem; margin-bottom:15px; color:#0a7b3f; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN CARD -->
+<div id="loginContainer" class="card">
+  <h1>Unshur Group Manager</h1>
+  <h2>Login</h2>
+  <form id="loginForm">
+    <input type="email" id="email" placeholder="Email" required>
+    <input type="password" id="password" placeholder="Password" required>
+    <button type="submit">Login</button>
+    <p id="loginError" style="color:red;"></p>
+  </form>
+</div>
+
+<!-- DASHBOARD CARD -->
+<div id="dashboardContainer" class="card" style="display:none;">
+  <h1>Manager Dashboard</h1>
+  <button id="logoutBtn" class="logout">Logout</button>
+  <table>
+    <thead>
+      <tr>
+        <th>Hospital Name</th>
+        <th>Total Feedbacks</th>
+        <th>Feedbacks (View)</th>
+      </tr>
+    </thead>
+    <tbody id="dashboardBody"></tbody>
+  </table>
+  <p id="noDataMessage" class="small" style="display:none;">No feedbacks found.</p>
+</div>
+
+<!-- ANSWERS CARD -->
+<div id="answersContainer" class="card" style="display:none;">
+  <h1 id="answersTitle">Answers</h1>
+  <div id="answersList" class="answers-panel"></div>
+  <div style="text-align:right;">
+    <button id="backBtn" class="back">Back to Dashboard</button>
+  </div>
+</div>
+
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-import { 
-  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut 
-} from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
-import { 
-  getFirestore, collection, onSnapshot, query, orderBy 
-} from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
+import { getFirestore, collection, onSnapshot, query, orderBy, Timestamp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
+/* ==================== CONFIG ==================== */
 const firebaseConfig = {
   apiKey: "AIzaSyDvVUrCLZj3Afu5MFqu5EhOGejyTfqEjgY",
   authDomain: "suggestion-box-4b869.firebaseapp.com",
@@ -22,6 +88,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+/* ==================== DOM ELEMENTS ==================== */
 const loginContainer = document.getElementById("loginContainer");
 const dashboardContainer = document.getElementById("dashboardContainer");
 const answersContainer = document.getElementById("answersContainer");
@@ -34,6 +101,7 @@ const answersTitle = document.getElementById("answersTitle");
 const answersList = document.getElementById("answersList");
 const backBtn = document.getElementById("backBtn");
 
+/* ==================== HOSPITALS LIST ==================== */
 const ALL_HOSPITALS = [
   "The Matuu Hospital",
   "Reliable Healthcare Services Hospital",
@@ -51,12 +119,18 @@ loginForm.addEventListener("submit", async e => {
   loginError.textContent = "";
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
-  try { await signInWithEmailAndPassword(auth, email, password); loginForm.reset(); }
-  catch(err){ loginError.textContent = "Invalid credentials"; }
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    loginForm.reset();
+  } catch(err) {
+    loginError.textContent = "Invalid credentials";
+  }
 });
 
 /* ==================== LOGOUT ==================== */
-logoutBtn.addEventListener("click", async () => await signOut(auth));
+logoutBtn.addEventListener("click", async () => {
+  await signOut(auth);
+});
 
 /* ==================== BACK BUTTON ==================== */
 backBtn.addEventListener("click", () => {
@@ -64,115 +138,96 @@ backBtn.addEventListener("click", () => {
   dashboardContainer.style.display = "block";
 });
 
+/* ==================== REALTIME FEEDBACK LISTENER ==================== */
 let feedbackListenerStarted = false;
 
 onAuthStateChanged(auth, user => {
-  if (user) {
-    loginContainer.style.display = "none";
-    dashboardContainer.style.display = "block";
-    if (!feedbackListenerStarted) {
+  if(user){
+    loginContainer.style.display="none";
+    dashboardContainer.style.display="block";
+    if(!feedbackListenerStarted){
       listenToFeedbacks();
       feedbackListenerStarted = true;
     }
   } else {
-    loginContainer.style.display = "block";
-    dashboardContainer.style.display = "none";
-    answersContainer.style.display = "none";
+    loginContainer.style.display="block";
+    dashboardContainer.style.display="none";
+    answersContainer.style.display="none";
   }
 });
 
-/* ==================== REALTIME FEEDBACK LISTENER ==================== */
 function listenToFeedbacks(){
-  const q = query(collection(db, "hospitalFeedback"), orderBy("timestamp", "desc")); // FIXED COLLECTION & FIELD
-
+  const q = query(collection(db, "hospitalFeedback"), orderBy("timestamp","desc"));
   onSnapshot(q, snapshot => {
-    const feedbacks = snapshot.docs.map(doc => doc.data());
+    const feedbacks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     populateDashboard(feedbacks);
   });
 }
 
-/* ==================== POPULATE DASHBOARD ==================== */
+/* ==================== DASHBOARD POPULATION ==================== */
 function populateDashboard(feedbacks){
   const grouped = {};
-  feedbacks.forEach(f => {
-    const rawName = f.hospital || f.hospitalName || "";
-    if (!rawName) return;
-    const nameNorm = rawName.trim().toLowerCase();
-    if (!grouped[nameNorm]) grouped[nameNorm] = [];
-    grouped[nameNorm].push(f);
+  feedbacks.forEach(f=>{
+    const name = f.hospital || "Unknown";
+    const key = name.trim().toLowerCase();
+    if(!grouped[key]) grouped[key]=[];
+    grouped[key].push(f);
   });
 
-  dashboardBody.innerHTML = "";
-
-  ALL_HOSPITALS.forEach(realName => {
-    const normName = realName.trim().toLowerCase();
-    const feedbackList = grouped[normName] || [];
-
+  dashboardBody.innerHTML="";
+  ALL_HOSPITALS.forEach(realName=>{
+    const key = realName.trim().toLowerCase();
+    const fbList = grouped[key] || [];
     const tr = document.createElement("tr");
+
     const tdName = document.createElement("td"); tdName.textContent = realName; tr.appendChild(tdName);
-
-    const tdCount = document.createElement("td"); tdCount.textContent = feedbackList.length; tr.appendChild(tdCount);
-
+    const tdCount = document.createElement("td"); tdCount.textContent = fbList.length; tr.appendChild(tdCount);
     const tdAction = document.createElement("td");
     const btn = document.createElement("button");
-    btn.textContent = "View";
-    btn.disabled = feedbackList.length === 0;
-    btn.addEventListener("click", () => openAnswers(realName, feedbackList));
-    tdAction.appendChild(btn);
-    tr.appendChild(tdAction);
+    btn.textContent="View"; btn.disabled = fbList.length===0;
+    btn.addEventListener("click",()=>openAnswers(realName, fbList));
+    tdAction.appendChild(btn); tr.appendChild(tdAction);
 
     dashboardBody.appendChild(tr);
   });
 
-  noDataMessage.style.display = feedbacks.length === 0 ? "block" : "none";
+  noDataMessage.style.display = feedbacks.length===0 ? "block":"none";
 }
 
-/* ==================== SHOW FEEDBACK ANSWERS ==================== */
-function openAnswers(hospital, feedbacks){
-  dashboardContainer.style.display = "none";
-  answersContainer.style.display = "block";
-  answersTitle.textContent = "Answers — " + hospital;
-  answersList.innerHTML = "";
+/* ==================== VIEW FEEDBACK ANSWERS ==================== */
+const QUIZ_ORDER = [
+  "workDuration","employmentStatus","employmentOther","workEnvironment","resourcesAvailable","deptCommunication",
+  "interDeptCommunication","feedbackValued","supervisorApproach","managementCommunication","managementSupport",
+  "leadershipRating","roleSatisfaction","workloadReasonable","skillsUtilized","careerOpportunities","compensation",
+  "benefits","teamwork","fairness","motivation","likes","improvements","suggestions","signedContract","jobDescription",
+  "kpi","additionalServices"
+];
 
-  if (!feedbacks || feedbacks.length === 0){
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "No answers yet for this hospital.";
+function openAnswers(hospital, feedbacks){
+  dashboardContainer.style.display="none";
+  answersContainer.style.display="block";
+  answersTitle.textContent="Answers — " + hospital;
+  answersList.innerHTML="";
+
+  if(!feedbacks.length){
+    const empty = document.createElement("div"); empty.className="empty"; empty.textContent="No answers yet for this hospital.";
     answersList.appendChild(empty);
     return;
   }
 
-  feedbacks.forEach((fb, index) => {
-    const respDiv = document.createElement("div");
-    respDiv.className = "response";
+  feedbacks.forEach((fb,index)=>{
+    const respDiv=document.createElement("div"); respDiv.className="response";
+    const header=document.createElement("div"); header.className="response-header"; header.textContent="Response #"+(index+1);
+    const content=document.createElement("div"); content.className="response-content";
 
-    const header = document.createElement("div");
-    header.className = "response-header";
-    header.textContent = "Response #" + (index + 1);
+    header.addEventListener("click",()=>{ content.style.display = content.style.display==="none" ? "block":"none"; });
 
-    const content = document.createElement("div");
-    content.className = "response-content";
-
-    header.addEventListener("click", () => {
-      content.style.display = content.style.display === "none" ? "block" : "none";
-    });
-
-    // Order of questions exactly like in HTML
-    const QUESTION_KEYS = [
-      "workDuration","employmentStatus","employmentOther",
-      "workEnvironment","resourcesAvailable","deptCommunication","interDeptCommunication","feedbackValued",
-      "supervisorApproach","managementCommunication","managementSupport","leadershipRating",
-      "roleSatisfaction","workloadReasonable","skillsUtilized","careerOpportunities",
-      "compensation","benefits","teamwork","fairness","motivation",
-      "likes","improvements","suggestions",
-      "signedContract","jobDescription","kpi","additionalServices"
-    ];
-
-    QUESTION_KEYS.forEach(key => {
-      const val = fb[key] || "No response";
-      const p = document.createElement("div");
-      p.textContent = `${key}: ${val}`;
-      content.appendChild(p);
+    QUIZ_ORDER.forEach(key=>{
+      if(fb[key]!==undefined){
+        const p=document.createElement("div");
+        p.textContent = `${key}: ${fb[key] || "No response"}`;
+        content.appendChild(p);
+      }
     });
 
     respDiv.appendChild(header);
@@ -180,5 +235,6 @@ function openAnswers(hospital, feedbacks){
     answersList.appendChild(respDiv);
   });
 }
-
 </script>
+</body>
+</html>
