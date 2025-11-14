@@ -5,24 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Manager Dashboard</title>
 <style>
-body { font-family: Arial, sans-serif; margin:0; background:#f8f9fa; color:#111; }
-h1 { color:#0a7b3f; text-align:center; margin-bottom:20px; }
-.card { background:#fff; padding:20px; border-radius:10px; max-width:1000px; margin:40px auto; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
+body { font-family: Arial, sans-serif; margin:20px; background:#f8f9fa; color:#111; }
+h1 { color:#0a7b3f; text-align:center; }
+.card { background:#fff; padding:20px; border-radius:10px; max-width:1000px; margin:20px auto; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
 table { width:100%; border-collapse:collapse; margin-top:20px; }
 th, td { padding:10px; border:1px solid #ccc; text-align:left; }
 th { background:#eee; }
 button { padding:6px 10px; border:none; border-radius:5px; cursor:pointer; background:#0b5ed7; color:#fff; }
 button:disabled { background:#ccc; cursor:not-allowed; }
-.logout { float:right; }
+.logout { float:right; background:#d9534f; }
 .small { font-size:0.9rem; color:#666; }
 .answers-panel { margin-top:10px; }
 .response { border:1px solid #ccc; border-radius:5px; margin-bottom:10px; padding:10px; background:#f9f9f9; }
 .response-header { font-weight:bold; cursor:pointer; background:#e9ecef; padding:6px; border-radius:5px; }
-.response-content { display:none; margin-top:6px; }
+.response-content { display:none; margin-top:6px; padding-left:10px; }
+.response-content div { margin-bottom:6px; }
+.meta { font-size:0.85rem; color:#666; margin-bottom:6px; }
 .back { margin-top:12px; background:#6c757d; }
-.empty { color:#666; padding:10px; }
-input[type=email], input[type=password] { width:100%; padding:8px 10px; margin:5px 0 15px; border-radius:5px; border:1px solid #ccc; font-size:14px; }
-button[type=submit] { width:100%; font-size:16px; padding:10px 0; }
+.empty { color:#666; padding:10px; font-style:italic; }
+/* LOGIN STYLING */
+#loginContainer { max-width:400px; text-align:center; margin-top:80px; }
+#loginContainer input { width:100%; padding:8px; margin:6px 0; border-radius:5px; border:1px solid #ccc; }
+#loginContainer button { width:100%; padding:10px; font-size:16px; }
 </style>
 </head>
 <body>
@@ -67,16 +71,18 @@ button[type=submit] { width:100%; font-size:16px; padding:10px 0; }
 </div>
 
 <script type="module">
+
+/* ==================== FIREBASE IMPORTS ==================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, query, orderBy, Timestamp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
 /* ==================== CONFIG ==================== */
 const firebaseConfig = {
   apiKey: "AIzaSyDvVUrCLZj3Afu5MFqu5EhOGejyTfqEjgY",
   authDomain: "suggestion-box-4b869.firebaseapp.com",
   projectId: "suggestion-box-4b869",
-  storageBucket: "suggestion-box-4b869.appspot.com",
+  storageBucket: "suggestion-box-4b869.firebasestorage.app",
   messagingSenderId: "263926556991",
   appId: "1:263926556991:web:8c1f585f1f42fb72664b8a",
   measurementId: "G-RHHQJE2Y6B"
@@ -99,16 +105,16 @@ const answersTitle = document.getElementById("answersTitle");
 const answersList = document.getElementById("answersList");
 const backBtn = document.getElementById("backBtn");
 
-/* ==================== HOSPITALS ==================== */
+/* ==================== HOSPITALS LIST ==================== */
 const ALL_HOSPITALS = [
-  {slug:"the-matuu-hospital", name:"The Matuu Hospital"},
-  {slug:"reliable-healthcare-services-hospital", name:"Reliable Healthcare Services Hospital"},
-  {slug:"ekalakala-nursing-home", name:"Ekalakala Nursing Home"},
-  {slug:"ultrakathiani-hospital", name:"Ultrakathiani Hospital"},
-  {slug:"ultrakathiani-hospital-mitaboni", name:"Ultrakathiani Hospital - Mitaboni"},
-  {slug:"namanga-nursing-home", name:"Namanga Nursing Home"},
-  {slug:"ginger-hospital", name:"Ginger Hospital"},
-  {slug:"kwa-vonza-cottage-hospital", name:"Kwa Vonza Cottage Hospital"}
+  "The Matuu Hospital",
+  "Reliable Healthcare Services Hospital",
+  "Ekalakala Nursing Home",
+  "Ultrakathiani Hospital",
+  "Ultrakathiani Hospital- Mitaboni",
+  "Namanga Nursing Home",
+  "Ginger Hospital",
+  "Kwa Vonza Cottage Hospital"
 ];
 
 /* ==================== LOGIN ==================== */
@@ -137,11 +143,15 @@ backBtn.addEventListener("click", () => {
 });
 
 /* ==================== AUTH LISTENER ==================== */
+let feedbackListenerStarted = false;
 onAuthStateChanged(auth, user => {
-  if(user){
+  if (user) {
     loginContainer.style.display = "none";
     dashboardContainer.style.display = "block";
-    listenToFeedbacks();
+    if (!feedbackListenerStarted) {
+      listenToFeedbacks();
+      feedbackListenerStarted = true;
+    }
   } else {
     loginContainer.style.display = "block";
     dashboardContainer.style.display = "none";
@@ -149,11 +159,11 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-/* ==================== FEEDBACK LISTENER ==================== */
+/* ==================== REALTIME FEEDBACK LISTENER ==================== */
 function listenToFeedbacks(){
-  const q = query(collection(db,"hospitalFeedback"), orderBy("timestamp","desc"));
+  const q = query(collection(db, "hospitalFeedback"), orderBy("timestamp", "desc"));
   onSnapshot(q, snapshot => {
-    const feedbacks = snapshot.docs.map(doc => doc.data());
+    const feedbacks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     populateDashboard(feedbacks);
   });
 }
@@ -162,18 +172,22 @@ function listenToFeedbacks(){
 function populateDashboard(feedbacks){
   const grouped = {};
   feedbacks.forEach(f => {
-    const slug = f.hospital || "";
-    if(!grouped[slug]) grouped[slug] = [];
-    grouped[slug].push(f);
+    const rawName = f.hospital;
+    if (!rawName) return;
+    const nameNorm = rawName.trim().toLowerCase();
+    if (!grouped[nameNorm]) grouped[nameNorm] = [];
+    grouped[nameNorm].push(f);
   });
 
   dashboardBody.innerHTML = "";
-  ALL_HOSPITALS.forEach(h => {
-    const feedbackList = grouped[h.slug] || [];
-    const tr = document.createElement("tr");
 
+  ALL_HOSPITALS.forEach(realName => {
+    const normName = realName.trim().toLowerCase();
+    const feedbackList = grouped[normName] || [];
+
+    const tr = document.createElement("tr");
     const tdName = document.createElement("td");
-    tdName.textContent = h.name;
+    tdName.textContent = realName;
     tr.appendChild(tdName);
 
     const tdCount = document.createElement("td");
@@ -184,7 +198,7 @@ function populateDashboard(feedbacks){
     const btn = document.createElement("button");
     btn.textContent = "View";
     btn.disabled = feedbackList.length === 0;
-    btn.addEventListener("click", () => showAnswers(h.name, feedbackList));
+    btn.addEventListener("click", () => openAnswers(realName, feedbackList));
     tdAction.appendChild(btn);
     tr.appendChild(tdAction);
 
@@ -194,45 +208,73 @@ function populateDashboard(feedbacks){
   noDataMessage.style.display = feedbacks.length === 0 ? "block" : "none";
 }
 
-/* ==================== SHOW ANSWERS ==================== */
-function showAnswers(hospital, feedbacks){
+/* ==================== SHOW FEEDBACK ANSWERS ==================== */
+function openAnswers(hospital, feedbacks){
   dashboardContainer.style.display = "none";
   answersContainer.style.display = "block";
   answersTitle.textContent = "Answers — " + hospital;
   answersList.innerHTML = "";
 
-  if(!feedbacks || feedbacks.length===0){
+  if (!feedbacks || feedbacks.length === 0){
     const empty = document.createElement("div");
-    empty.className="empty";
-    empty.textContent="No answers yet for this hospital.";
+    empty.className = "empty";
+    empty.textContent = "No answers yet for this hospital.";
     answersList.appendChild(empty);
     return;
   }
 
-  const fieldsOrder = [
-    "workDuration","employmentStatus","employmentOther","workEnvironment","resourcesAvailable",
-    "deptCommunication","interDeptCommunication","feedbackValued","supervisorApproach","managementCommunication",
-    "managementSupport","leadershipRating","roleSatisfaction","workloadReasonable","skillsUtilized",
-    "careerOpportunities","compensation","benefits","teamwork","fairness","motivation","likes","improvements",
-    "suggestions","signedContract","jobDescription","kpi","additionalServices"
-  ];
+  const questionsMap = {
+    workDuration: "How long have you worked with the company?",
+    employmentStatus: "What is your employment status?",
+    employmentOther: "Other employment status (if any)",
+    workEnvironment: "How would you rate your general work environment?",
+    resourcesAvailable: "Do you have the tools and resources needed to perform your job effectively?",
+    deptCommunication: "How would you rate communication within your department?",
+    interDeptCommunication: "How would you rate communication between departments?",
+    feedbackValued: "Do you feel your ideas and feedback are valued by management?",
+    supervisorApproach: "How approachable is your immediate supervisor/manager?",
+    managementCommunication: "How well does management communicate goals and expectations?",
+    managementSupport: "Do you feel supported by management in your work and professional growth?",
+    leadershipRating: "How would you rate the overall leadership of the company?",
+    roleSatisfaction: "How satisfied are you with your current role?",
+    workloadReasonable: "Do you believe your workload is reasonable?",
+    skillsUtilized: "Are your skills and talents being fully utilized in your current position?",
+    careerOpportunities: "Do you see opportunities for career growth and advancement within the company?",
+    compensation: "How satisfied are you with your compensation?",
+    benefits: "How satisfied are you with employee benefits?",
+    teamwork: "How would you describe the teamwork in your department?",
+    fairness: "Do you feel the company promotes fairness, respect, and equal opportunity?",
+    motivation: "How motivated do you feel coming to work each day?",
+    likes: "What do you like most about working in this company?",
+    improvements: "What areas do you feel need improvement?",
+    suggestions: "What suggestions do you have for management to improve staff morale, efficiency, and retention?",
+    signedContract: "Do you have a signed contract?",
+    jobDescription: "Do you have a clear job description given to you?",
+    kpi: "Do you have clear Key Performance Indicators (KPIs) to evaluate performance?",
+    additionalServices: "Which additional services do you think are in demand?"
+  };
 
-  feedbacks.forEach((fb,index)=>{
+  feedbacks.forEach((fb, index) => {
     const respDiv = document.createElement("div");
-    respDiv.className="response";
+    respDiv.className = "response";
 
     const header = document.createElement("div");
-    header.className="response-header";
-    header.textContent="Response #" + (index+1);
+    header.className = "response-header";
+    header.textContent = "Response #" + (index + 1);
 
     const content = document.createElement("div");
-    content.className="response-content";
+    content.className = "response-content";
 
-    header.addEventListener("click",()=>{ content.style.display = content.style.display==="none"?"block":"none"; });
+    header.addEventListener("click", () => {
+      content.style.display = content.style.display === "none" ? "block" : "none";
+    });
 
-    fieldsOrder.forEach(f=>{
+    // Display in proper question → answer format
+    Object.keys(questionsMap).forEach(key => {
+      const questionText = questionsMap[key];
+      const answerText = fb[key] || "No response";
       const p = document.createElement("div");
-      p.textContent = `${f}: ${fb[f] || "No response"}`;
+      p.innerHTML = `<strong>Q:</strong> ${questionText}<br><strong>A:</strong> ${answerText}`;
       content.appendChild(p);
     });
 
@@ -241,7 +283,9 @@ function showAnswers(hospital, feedbacks){
     answersList.appendChild(respDiv);
   });
 }
+
 </script>
 </body>
 </html>
+
 
