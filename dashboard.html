@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Manager Dashboard</title>
 <style>
-body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f8f9fa; color:#111; }
-h1 { text-align:center; color:#0a7b3f; }
+body { font-family: Arial, sans-serif; margin:0; background:#f8f9fa; color:#111; }
+h1 { color:#0a7b3f; text-align:center; margin-bottom:20px; }
 .card { background:#fff; padding:20px; border-radius:10px; max-width:1000px; margin:40px auto; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
 table { width:100%; border-collapse:collapse; margin-top:20px; }
 th, td { padding:10px; border:1px solid #ccc; text-align:left; }
@@ -21,7 +21,8 @@ button:disabled { background:#ccc; cursor:not-allowed; }
 .response-content { display:none; margin-top:6px; }
 .back { margin-top:12px; background:#6c757d; }
 .empty { color:#666; padding:10px; }
-input, select, textarea { width:100%; padding:8px; margin:6px 0; border-radius:5px; border:1px solid #ccc; }
+input[type=email], input[type=password] { width:100%; padding:8px 10px; margin:5px 0 15px; border-radius:5px; border:1px solid #ccc; font-size:14px; }
+button[type=submit] { width:100%; font-size:16px; padding:10px 0; }
 </style>
 </head>
 <body>
@@ -66,16 +67,16 @@ input, select, textarea { width:100%; padding:8px; margin:6px 0; border-radius:5
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
 import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
+/* ==================== CONFIG ==================== */
 const firebaseConfig = {
   apiKey: "AIzaSyDvVUrCLZj3Afu5MFqu5EhOGejyTfqEjgY",
   authDomain: "suggestion-box-4b869.firebaseapp.com",
   projectId: "suggestion-box-4b869",
-  storageBucket: "suggestion-box-4b869.firebasestorage.app",
+  storageBucket: "suggestion-box-4b869.appspot.com",
   messagingSenderId: "263926556991",
   appId: "1:263926556991:web:8c1f585f1f42fb72664b8a",
   measurementId: "G-RHHQJE2Y6B"
@@ -85,6 +86,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+/* ==================== DOM ELEMENTS ==================== */
 const loginContainer = document.getElementById("loginContainer");
 const dashboardContainer = document.getElementById("dashboardContainer");
 const answersContainer = document.getElementById("answersContainer");
@@ -97,17 +99,19 @@ const answersTitle = document.getElementById("answersTitle");
 const answersList = document.getElementById("answersList");
 const backBtn = document.getElementById("backBtn");
 
+/* ==================== HOSPITALS ==================== */
 const ALL_HOSPITALS = [
-  "The Matuu Hospital",
-  "Reliable Healthcare Services Hospital",
-  "Ekalakala Nursing Home",
-  "Ultrakathiani Hospital",
-  "Ultrakathiani Hospital- Mitaboni",
-  "Namanga Nursing Home",
-  "Ginger Hospital",
-  "Kwa Vonza Cottage Hospital"
+  {slug:"the-matuu-hospital", name:"The Matuu Hospital"},
+  {slug:"reliable-healthcare-services-hospital", name:"Reliable Healthcare Services Hospital"},
+  {slug:"ekalakala-nursing-home", name:"Ekalakala Nursing Home"},
+  {slug:"ultrakathiani-hospital", name:"Ultrakathiani Hospital"},
+  {slug:"ultrakathiani-hospital-mitaboni", name:"Ultrakathiani Hospital - Mitaboni"},
+  {slug:"namanga-nursing-home", name:"Namanga Nursing Home"},
+  {slug:"ginger-hospital", name:"Ginger Hospital"},
+  {slug:"kwa-vonza-cottage-hospital", name:"Kwa Vonza Cottage Hospital"}
 ];
 
+/* ==================== LOGIN ==================== */
 loginForm.addEventListener("submit", async e => {
   e.preventDefault();
   loginError.textContent = "";
@@ -121,25 +125,23 @@ loginForm.addEventListener("submit", async e => {
   }
 });
 
+/* ==================== LOGOUT ==================== */
 logoutBtn.addEventListener("click", async () => {
   await signOut(auth);
 });
 
+/* ==================== BACK BUTTON ==================== */
 backBtn.addEventListener("click", () => {
   answersContainer.style.display = "none";
   dashboardContainer.style.display = "block";
 });
 
-let feedbackListenerStarted = false;
-
+/* ==================== AUTH LISTENER ==================== */
 onAuthStateChanged(auth, user => {
   if(user){
     loginContainer.style.display = "none";
     dashboardContainer.style.display = "block";
-    if(!feedbackListenerStarted){
-      listenToFeedbacks();
-      feedbackListenerStarted = true;
-    }
+    listenToFeedbacks();
   } else {
     loginContainer.style.display = "block";
     dashboardContainer.style.display = "none";
@@ -147,39 +149,42 @@ onAuthStateChanged(auth, user => {
   }
 });
 
+/* ==================== FEEDBACK LISTENER ==================== */
 function listenToFeedbacks(){
-  const q = query(collection(db, "hospitalFeedback"), orderBy("timestamp", "desc"));
+  const q = query(collection(db,"hospitalFeedback"), orderBy("timestamp","desc"));
   onSnapshot(q, snapshot => {
     const feedbacks = snapshot.docs.map(doc => doc.data());
     populateDashboard(feedbacks);
   });
 }
 
+/* ==================== POPULATE DASHBOARD ==================== */
 function populateDashboard(feedbacks){
   const grouped = {};
   feedbacks.forEach(f => {
-    const rawName = f.hospitalName || f.hospital;
-    if(!rawName) return;
-    const nameNorm = rawName.trim().toLowerCase();
-    if(!grouped[nameNorm]) grouped[nameNorm] = [];
-    grouped[nameNorm].push(f);
+    const slug = f.hospital || "";
+    if(!grouped[slug]) grouped[slug] = [];
+    grouped[slug].push(f);
   });
 
   dashboardBody.innerHTML = "";
-
-  ALL_HOSPITALS.forEach(realName => {
-    const normName = realName.trim().toLowerCase();
-    const feedbackList = grouped[normName] || [];
-
+  ALL_HOSPITALS.forEach(h => {
+    const feedbackList = grouped[h.slug] || [];
     const tr = document.createElement("tr");
-    const tdName = document.createElement("td"); tdName.textContent = realName; tr.appendChild(tdName);
-    const tdCount = document.createElement("td"); tdCount.textContent = feedbackList.length; tr.appendChild(tdCount);
+
+    const tdName = document.createElement("td");
+    tdName.textContent = h.name;
+    tr.appendChild(tdName);
+
+    const tdCount = document.createElement("td");
+    tdCount.textContent = feedbackList.length;
+    tr.appendChild(tdCount);
 
     const tdAction = document.createElement("td");
     const btn = document.createElement("button");
     btn.textContent = "View";
     btn.disabled = feedbackList.length === 0;
-    btn.addEventListener("click", () => openAnswers(realName, feedbackList));
+    btn.addEventListener("click", () => showAnswers(h.name, feedbackList));
     tdAction.appendChild(btn);
     tr.appendChild(tdAction);
 
@@ -189,7 +194,8 @@ function populateDashboard(feedbacks){
   noDataMessage.style.display = feedbacks.length === 0 ? "block" : "none";
 }
 
-function openAnswers(hospital, feedbacks){
+/* ==================== SHOW ANSWERS ==================== */
+function showAnswers(hospital, feedbacks){
   dashboardContainer.style.display = "none";
   answersContainer.style.display = "block";
   answersTitle.textContent = "Answers — " + hospital;
@@ -204,12 +210,11 @@ function openAnswers(hospital, feedbacks){
   }
 
   const fieldsOrder = [
-    "workDuration","employmentStatus","employmentOther","workEnvironment",
-    "resourcesAvailable","deptCommunication","interDeptCommunication","feedbackValued",
-    "supervisorApproach","managementCommunication","managementSupport","leadershipRating",
-    "roleSatisfaction","workloadReasonable","skillsUtilized","careerOpportunities",
-    "compensation","benefits","teamwork","fairness","motivation",
-    "likes","improvements","suggestions","signedContract","jobDescription","kpi","additionalServices"
+    "workDuration","employmentStatus","employmentOther","workEnvironment","resourcesAvailable",
+    "deptCommunication","interDeptCommunication","feedbackValued","supervisorApproach","managementCommunication",
+    "managementSupport","leadershipRating","roleSatisfaction","workloadReasonable","skillsUtilized",
+    "careerOpportunities","compensation","benefits","teamwork","fairness","motivation","likes","improvements",
+    "suggestions","signedContract","jobDescription","kpi","additionalServices"
   ];
 
   feedbacks.forEach((fb,index)=>{
@@ -219,17 +224,15 @@ function openAnswers(hospital, feedbacks){
     const header = document.createElement("div");
     header.className="response-header";
     header.textContent="Response #" + (index+1);
+
     const content = document.createElement("div");
     content.className="response-content";
 
-    header.addEventListener("click",()=>{ 
-      content.style.display = content.style.display==="none"?"block":"none";
-    });
+    header.addEventListener("click",()=>{ content.style.display = content.style.display==="none"?"block":"none"; });
 
-    fieldsOrder.forEach(key=>{
-      const val = fb[key];
+    fieldsOrder.forEach(f=>{
       const p = document.createElement("div");
-      p.textContent=`${key}: ${val || "No response"}`;
+      p.textContent = `${f}: ${fb[f] || "No response"}`;
       content.appendChild(p);
     });
 
@@ -238,7 +241,7 @@ function openAnswers(hospital, feedbacks){
     answersList.appendChild(respDiv);
   });
 }
-
 </script>
 </body>
 </html>
+
