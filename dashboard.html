@@ -110,7 +110,7 @@ const ALL_HOSPITALS = [
   "Reliable Healthcare Services Hospital",
   "Ekalakala Nursing Home",
   "Ultrakathiani Hospital",
-  "Ultrakathiani Hospital- Mitaboni",
+  "Ultrakathiani Hospital - Mitaboni",
   "Namanga Nursing Home",
   "Ginger Hospital",
   "Kwa Vonza Cottage Hospital"
@@ -142,7 +142,7 @@ backBtn.addEventListener("click", () => {
   dashboardContainer.style.display = "block";
 });
 
-/* ==================== PREVENT LISTENER DUPLICATION ==================== */
+/* ==================== PREVENT DUPLICATION ==================== */
 let feedbackListenerStarted = false;
 
 /* ==================== AUTH LISTENER ==================== */
@@ -163,9 +163,9 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-/* ==================== REALTIME FEEDBACK LISTENER ==================== */
+/* ==================== FEEDBACK LISTENER ==================== */
 function listenToFeedbacks(){
-  const q = query(collection(db, "feedbacks"), orderBy("createdAt", "desc"));
+  const q = query(collection(db, "hospitalFeedback"), orderBy("timestamp", "desc"));
 
   onSnapshot(q, snapshot => {
     const feedbacks = snapshot.docs.map(doc => doc.data());
@@ -173,12 +173,12 @@ function listenToFeedbacks(){
   });
 }
 
-/* ==================== POPULATE DASHBOARD ==================== */
+/* ==================== DASHBOARD POPULATION ==================== */
 function populateDashboard(feedbacks){
   const grouped = {};
 
   feedbacks.forEach(f => {
-    const rawName = f.hospitalName || f.hospital;
+    const rawName = f.hospital || f.hospitalName;
     if (!rawName) return;
 
     const nameNorm = rawName.trim().toLowerCase();
@@ -217,6 +217,48 @@ function populateDashboard(feedbacks){
 }
 
 /* ==================== SHOW FEEDBACK ANSWERS ==================== */
+const QUESTION_ORDER = [
+  "workDuration","employmentStatus","employmentOther",
+  "workEnvironment","resourcesAvailable","deptCommunication","interDeptCommunication","feedbackValued",
+  "supervisorApproach","managementCommunication","managementSupport","leadershipRating",
+  "roleSatisfaction","workloadReasonable","skillsUtilized","careerOpportunities",
+  "compensation","benefits",
+  "teamwork","fairness","motivation",
+  "likes","improvements","suggestions",
+  "signedContract","jobDescription","kpi","additionalServices"
+];
+
+const QUESTION_LABELS = {
+  workDuration:"How long have you worked with the company?",
+  employmentStatus:"Employment status",
+  employmentOther:"Other employment info",
+  workEnvironment:"Work environment rating",
+  resourcesAvailable:"Resources available?",
+  deptCommunication:"Dept communication rating",
+  interDeptCommunication:"Inter-dept communication rating",
+  feedbackValued:"Are ideas/feedback valued?",
+  supervisorApproach:"Supervisor approachability",
+  managementCommunication:"Management communication",
+  managementSupport:"Supported by management?",
+  leadershipRating:"Leadership rating",
+  roleSatisfaction:"Role satisfaction",
+  workloadReasonable:"Workload reasonable?",
+  skillsUtilized:"Skills utilized fully?",
+  careerOpportunities:"Career growth opportunities?",
+  compensation:"Compensation satisfaction",
+  benefits:"Benefits satisfaction",
+  teamwork:"Teamwork description",
+  fairness:"Fairness & equality?",
+  motivation:"Motivation level",
+  likes:"What do you like most?",
+  improvements:"Areas needing improvement",
+  suggestions:"Suggestions to management",
+  signedContract:"Signed contract?",
+  jobDescription:"Clear job description?",
+  kpi:"KPI clarity?",
+  additionalServices:"Additional services suggested"
+};
+
 function openAnswers(hospital, feedbacks){
   dashboardContainer.style.display = "none";
   answersContainer.style.display = "block";
@@ -235,21 +277,20 @@ function openAnswers(hospital, feedbacks){
     const respDiv = document.createElement("div");
     respDiv.className = "response";
 
-    const content = document.createElement("div");
-    content.className = "response-content";
-
     const header = document.createElement("div");
     header.className = "response-header";
     header.textContent = "Response #" + (index + 1);
+    const content = document.createElement("div");
+    content.className = "response-content";
+
     header.addEventListener("click", () => {
       content.style.display = content.style.display === "none" ? "block" : "none";
     });
 
-    Object.entries(fb).forEach(([key, val]) => {
-      if (key === "createdAt" || key === "hospital" || key === "hospitalName") return;
-
+    QUESTION_ORDER.forEach(q => {
       const p = document.createElement("div");
-      p.textContent = `${key}: ${val || "No response"}`;
+      const label = QUESTION_LABELS[q] || q;
+      p.textContent = `${label}: ${fb[q] || "No response"}`;
       content.appendChild(p);
     });
 
@@ -262,4 +303,3 @@ function openAnswers(hospital, feedbacks){
 </script>
 </body>
 </html>
-
